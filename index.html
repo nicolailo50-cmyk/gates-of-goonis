@@ -661,20 +661,24 @@ function overlayConfirm(title,msg,confirmLabel,cancelLabel){
 function overlayStart(title,sub){
   overlayActive=true;
   return new Promise(res=>{
+    const go=()=>{hideOverlay();res();};
     overlay.innerHTML=`<div class="ov-card"><div class="ov-title big">${title}</div>
       <div class="ov-msg">${sub}</div><button class="ov-start">CLICK TO START</button></div>`;
     overlay.classList.add('show');
-    overlay.querySelector('.ov-start').onclick=()=>{hideOverlay();res();};
+    overlay.querySelector('.ov-start').onclick=go;
+    if(autoSpins>0)setTimeout(()=>{if(overlayActive)go();}, turbo?700:1300); // auto-advance during autoplay
   });
 }
 function overlayEnd(total){
   overlayActive=true;
   return new Promise(res=>{
+    const go=()=>{hideOverlay();res();};
     overlay.innerHTML=`<div class="ov-card"><div class="ov-title big">FREE SPINS COMPLETE</div>
       <div class="ov-msg">Goonar coughs up your winnings:</div>
       <div class="ov-total">${kr(total)}</div><button class="ov-start">COLLECT</button></div>`;
     overlay.classList.add('show');
-    overlay.querySelector('.ov-start').onclick=()=>{hideOverlay();res();};
+    overlay.querySelector('.ov-start').onclick=go;
+    if(autoSpins>0)setTimeout(()=>{if(overlayActive)go();}, turbo?1100:2000); // auto-collect during autoplay
   });
 }
 // Hit counter under Goonar: shows the symbols that landed in the most recent cascade + their value
@@ -924,18 +928,21 @@ $('turboToggle').addEventListener('change',e=>{turbo=e.target.checked;speedMul=t
 // ---- Autoplay ----  (button: start selected count; click while running = stop; cycles 10/25/50)
 let autoSel=10;
 function updateAuto(){const on=autoSpins>0;$('autoLbl').textContent=on?(autoSpins+' ▮'):'OFF';$('autoBtn').classList.toggle('on',on);}
-function scheduleAuto(){
-  if(autoSpins<=0)return;
-  if(spinning||inFreeSpins||overlayActive)return;
-  if(credits<bet){autoSpins=0;updateAuto();setLog('Autoplay stopped — out of credits.');return;}
+function stopAuto(){autoSpins=0;updateAuto();}
+// schedule the NEXT autoplay spin; runAutoSpin re-checks all state at fire time (so Stop is instant)
+function scheduleAuto(){ if(autoSpins>0) setTimeout(runAutoSpin, turbo?140:430); }
+function runAutoSpin(){
+  if(autoSpins<=0||spinning||inFreeSpins||overlayActive)return;
+  if(credits<bet){stopAuto();setLog('Autoplay stopped — out of credits.');return;}
   autoSpins--;updateAuto();
-  setTimeout(()=>{ if(!spinning&&!inFreeSpins&&!overlayActive)spin(); }, turbo?150:460);
+  spin();
 }
 $('autoBtn').addEventListener('click',()=>{
-  if(autoSpins>0){autoSpins=0;updateAuto();setLog('Autoplay stopped.');return;}  // stop
+  if(autoSpins>0){stopAuto();setLog('Autoplay stopped.');return;}   // running -> stop now
+  if(credits<bet){setLog('Not enough credits to autoplay.');return;}
   autoSpins=autoSel;updateAuto();
-  autoSel = autoSel===10?25:autoSel===25?50:10;                                  // next start uses next tier
-  if(!spinning&&!inFreeSpins&&!overlayActive)scheduleAuto();
+  autoSel = autoSel===10?25:autoSel===25?50:10;                      // next start uses next tier
+  runAutoSpin();                                                     // start immediately
 });
 
 // ---- Refill ----

@@ -3,4 +3,6 @@ montage.png
 orbcheck.png
 sim.py
 slice.py
+server.js
+.claude/
 .DS_Store
