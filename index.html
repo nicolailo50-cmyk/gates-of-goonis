@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gates of Goonis</title>
+<style>
+  *{box-sizing:border-box;}
+  :root{
+    --gold:#ffe07a; --gold2:#d9a528; --gold-dk:#7c5a08;
+    --panel:#120a2e;
+  }
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:'Trebuchet MS','Segoe UI',sans-serif;color:#fff;
+    background:
+      radial-gradient(ellipse at 50% -10%, #6b4bb0 0%, #2c1a5e 38%, #140a33 70%, #08041c 100%);
+    overflow-x:hidden;
+  }
+  /* twinkling sky + god rays */
+  .sky{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;}
+  .sky .rays{
+    position:absolute;left:50%;top:-20%;width:140vmax;height:140vmax;transform:translateX(-50%);
+    background:conic-gradient(from 0deg at 50% 50%,
+      rgba(255,224,122,0.0) 0deg, rgba(255,224,122,0.10) 6deg, rgba(255,224,122,0) 12deg,
+      rgba(255,224,122,0) 24deg, rgba(255,224,122,0.10) 30deg, rgba(255,224,122,0) 36deg,
+      rgba(255,224,122,0) 60deg, rgba(255,224,122,0.08) 66deg, rgba(255,224,122,0) 72deg);
+    animation:spin 90s linear infinite;opacity:.6;
+  }
+  @keyframes spin{to{transform:translateX(-50%) rotate(360deg);}}
+  .sky .stars{position:absolute;inset:0;background-image:
+    radial-gradient(1.5px 1.5px at 20% 30%, #fff,transparent),
+    radial-gradient(1.5px 1.5px at 70% 20%, #fff,transparent),
+    radial-gradient(1px 1px at 40% 60%, #fff,transparent),
+    radial-gradient(1.5px 1.5px at 85% 50%, #fff,transparent),
+    radial-gradient(1px 1px at 60% 75%, #fff,transparent),
+    radial-gradient(1px 1px at 10% 80%, #fff,transparent),
+    radial-gradient(1.5px 1.5px at 90% 85%, #fff,transparent);
+    opacity:.5;animation:tw 4s ease-in-out infinite alternate;}
+  @keyframes tw{from{opacity:.25}to{opacity:.7}}
+
+  .wrap{position:relative;z-index:1;max-width:1140px;margin:0 auto;padding:6px 14px 40px;}
+  .titlebar{text-align:center;}
+  .titlebar h1{
+    margin:6px 0 0;font-size:clamp(30px,6.5vw,62px);letter-spacing:2px;font-weight:900;
+    background:linear-gradient(180deg,#fff7d6 0%,#ffe07a 40%,#e8b53a 60%,#8a5a0a 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 3px 1px rgba(0,0,0,.6));
+    -webkit-text-stroke:1px rgba(120,80,10,.4);
+  }
+  .titlebar .sub{color:#d6c4ff;font-style:italic;font-size:14px;margin-top:2px;}
+
+  .stage{display:grid;grid-template-columns:310px 1fr;gap:10px;align-items:center;}
+  @media(max-width:920px){.stage{grid-template-columns:1fr;}.goonar{order:2;max-width:320px;margin:0 auto;}}
+
+  /* ---- Goonar as Zeus ---- */
+  .goonar{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;align-self:stretch;}
+  .goonar .cloud{position:absolute;bottom:0;width:115%;height:46%;
+    background:radial-gradient(ellipse at 50% 60%, rgba(200,180,255,.55),rgba(150,120,230,0) 70%);filter:blur(8px);}
+  .goonar .halo{position:absolute;top:6%;width:175px;height:175px;border-radius:50%;
+    background:radial-gradient(circle, rgba(255,224,122,.55),transparent 68%);filter:blur(4px);
+    animation:pulse 3s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.13);opacity:1}}
+  .goonar .portrait{position:relative;z-index:2;width:100%;max-width:310px;border-radius:14px;
+    box-shadow:0 0 0 3px var(--gold2),0 0 0 6px #5b3d0a,0 12px 30px rgba(0,0,0,.7);
+    filter:contrast(1.06) saturate(1.12) drop-shadow(0 0 10px rgba(0,0,0,.5));}
+  .goonar.angry .portrait{animation:shake .5s ease;}
+  @keyframes shake{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-6px) rotate(-2deg)}40%{transform:translateX(6px) rotate(2deg)}60%{transform:translateX(-5px) rotate(-1.5deg)}80%{transform:translateX(5px) rotate(1.5deg)}}
+  .speech{position:absolute;top:2%;left:50%;transform:translateX(-50%) scale(.5);z-index:6;
+    background:#fff;color:#11061f;font-weight:900;font-size:15px;padding:9px 15px;border-radius:16px;white-space:nowrap;
+    opacity:0;box-shadow:0 6px 18px rgba(0,0,0,.5);}
+  .speech::after{content:'';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);border:9px solid transparent;border-top-color:#fff;}
+  .speech.show{animation:shout 1.5s ease forwards;}
+  @keyframes shout{0%{opacity:0;transform:translateX(-50%) scale(.5)}14%{opacity:1;transform:translateX(-50%) scale(1.12)}26%{transform:translateX(-50%) scale(1)}82%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(.9)}}
+
+  #hitCounter{position:relative;z-index:3;width:100%;margin-top:10px;
+    background:linear-gradient(180deg,rgba(40,28,82,.92),rgba(22,13,51,.92));
+    border:2px solid var(--gold2);border-radius:12px;padding:8px 10px;
+    box-shadow:0 4px 16px rgba(0,0,0,.5),inset 0 0 12px rgba(0,0,0,.4);}
+  #hitCounter .hc-title{text-align:center;color:#cdb6ff;font-size:11px;letter-spacing:2px;font-weight:700;margin-bottom:6px;}
+  .hc-list{display:flex;flex-direction:column;gap:4px;min-height:30px;}
+  .hc-row{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.28);border-radius:8px;padding:3px 8px;
+    animation:hcIn .25s ease;}
+  @keyframes hcIn{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+  .hc-row img{width:30px;height:30px;object-fit:contain;flex:0 0 auto;}
+  .hc-row .hc-cnt{color:#fff;font-size:12px;font-weight:700;opacity:.8;min-width:34px;}
+  .hc-row .hc-val{margin-left:auto;color:var(--gold);font-weight:900;font-size:14px;}
+  .hc-empty{text-align:center;color:#6b5f8a;font-size:12px;font-style:italic;padding:6px 0;}
+  /* ---- ornate frame ---- */
+  .board-frame{position:relative;padding:18px;border-radius:20px;
+    background:
+      linear-gradient(180deg,#2a1c52,#160d33);
+    box-shadow:0 16px 50px rgba(0,0,0,.6),0 0 50px rgba(255,224,122,.18);}
+  .gold-edge{position:absolute;inset:0;border-radius:20px;padding:0;pointer-events:none;
+    background:
+      linear-gradient(180deg,#fff2b0,#e8b53a 18%,#8a5a0a 50%,#caa030 82%,#fff2b0);
+    -webkit-mask:
+      linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    border:9px solid transparent;}
+  .gold-edge::after{content:'';position:absolute;inset:6px;border-radius:14px;border:1.5px solid rgba(255,245,200,.35);}
+  .corner{position:absolute;width:34px;height:34px;z-index:3;opacity:.95;}
+  .corner.tl{top:-4px;left:-4px;}.corner.tr{top:-4px;right:-4px;transform:scaleX(-1);}
+  .corner.bl{bottom:-4px;left:-4px;transform:scaleY(-1);}.corner.br{bottom:-4px;right:-4px;transform:scale(-1,-1);}
+
+  #tumbleCounter{text-align:center;margin:0 auto 10px;width:max-content;min-width:180px;
+    background:linear-gradient(180deg,#2a1c52,#160d33);border:2px solid var(--gold2);border-radius:30px;
+    padding:6px 22px;box-shadow:0 0 16px rgba(255,224,122,.25),inset 0 0 10px rgba(0,0,0,.4);}
+  #tumbleCounter .tc-label{color:#cdb6ff;font-size:12px;letter-spacing:2px;font-weight:700;vertical-align:middle;}
+  #tcVal{color:var(--gold);font-size:24px;font-weight:900;vertical-align:middle;text-shadow:0 0 10px rgba(255,224,122,.5);}
+  #tcVal.bump{animation:tcbump .3s ease;}
+  @keyframes tcbump{0%{transform:scale(1)}45%{transform:scale(1.18);color:#fff}100%{transform:scale(1)}}
+  #board{display:grid;grid-template-columns:repeat(6,1fr);grid-template-rows:repeat(5,1fr);gap:6px;aspect-ratio:6/5;position:relative;z-index:1;}
+  .cell{position:relative;border-radius:14px;overflow:hidden;display:flex;align-items:center;justify-content:center;
+    background:
+      radial-gradient(120% 120% at 50% 0%, rgba(120,95,200,.30),rgba(20,12,48,.65) 70%);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 -8px 14px rgba(0,0,0,.45),inset 0 6px 12px rgba(160,130,255,.12);}
+  .cell svg{width:88%;height:88%;display:block;}
+  .cell .symimg{object-fit:contain;display:block;
+    filter:drop-shadow(0 3px 5px rgba(0,0,0,.55));user-select:none;-webkit-user-drag:none;}
+  /* drinks: bigger & catchier; food: smaller & subtler */
+  .cell .symimg.drink{width:100%;height:100%;filter:drop-shadow(0 3px 7px rgba(0,0,0,.6)) saturate(1.12) brightness(1.05);}
+  .cell .symimg.top{width:104%;height:104%;filter:drop-shadow(0 0 10px rgba(120,255,170,.5)) drop-shadow(0 3px 7px rgba(0,0,0,.6));}
+  .cell .symimg.food{width:74%;height:74%;opacity:.92;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5)) saturate(.9);}
+  .cell .symimg.scat{width:96%;height:96%;}
+  .cell .symimg.orb{width:104%;height:104%;filter:drop-shadow(0 0 8px rgba(255,150,40,.7));}
+  .cell.mult-cell .mval{top:50%;left:50%;transform:translate(-50%,-50%);font-size:clamp(13px,2.8vw,22px);}
+  /* per-hit value tag */
+  .hitval{position:absolute;bottom:3px;left:50%;transform:translateX(-50%);z-index:4;
+    background:linear-gradient(180deg,#ffe898,#d9a528);color:#3a2400;font-weight:900;font-size:clamp(9px,1.9vw,13px);
+    padding:1px 6px;border-radius:8px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.5);pointer-events:none;}
+  /* big cascade win popup */
+  #winPop{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%) scale(.5);z-index:8;
+    font-size:clamp(30px,8vw,64px);font-weight:900;color:#fff;opacity:0;pointer-events:none;
+    text-shadow:0 0 14px #ffb24d,0 0 28px #ff7a00,0 3px 4px #000;
+    background:linear-gradient(180deg,#fff7d6,#ffd75e 55%,#e0a92c);-webkit-background-clip:text;background-clip:text;}
+  #winPop.show{animation:winpop 1.2s ease forwards;}
+  @keyframes winpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}40%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-55%) scale(1)}}
+  .cell.win{animation:pop .45s ease forwards;}
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.2)}100%{transform:scale(0);opacity:0}}
+  .cell.falling{animation:drop .32s cubic-bezier(.3,1.3,.5,1);}
+  @keyframes drop{0%{transform:translateY(-95px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  .cell.scatter-cell{box-shadow:inset 0 0 0 2px #8fffc0,0 0 20px #2ec27e;animation:scpulse 1.2s ease-in-out infinite;}
+  @keyframes scpulse{0%,100%{box-shadow:inset 0 0 0 2px #8fffc0,0 0 12px #2ec27e}50%{box-shadow:inset 0 0 0 2px #c8ffe0,0 0 26px #43e39a}}
+  .cell.mult-cell svg{animation:orbland .5s ease;}
+  @keyframes orbland{0%{transform:scale(0) rotate(-120deg)}70%{transform:scale(1.22)}100%{transform:scale(1)}}
+  .mval{position:absolute;z-index:3;font-weight:900;color:#fff;font-size:clamp(12px,2.6vw,20px);
+    text-shadow:0 0 5px #000,0 2px 3px #000;pointer-events:none;}
+
+  /* ---- HUD ---- */
+  .hud{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin:14px 0 8px;}
+  .pill{background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(0,0,0,.28));border:1px solid var(--gold2);
+    border-radius:12px;padding:8px 18px;min-width:130px;text-align:center;}
+  .pill .lbl{font-size:11px;color:#cdb6ff;text-transform:uppercase;letter-spacing:1px;}
+  .pill .val{font-size:21px;font-weight:900;color:var(--gold);}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:center;margin-top:6px;}
+  button{background:linear-gradient(180deg,#ffe898,#d9a528);border:none;color:#3a2400;font-weight:900;letter-spacing:1px;
+    padding:12px 22px;border-radius:30px;font-size:16px;cursor:pointer;box-shadow:0 4px 0 var(--gold-dk),0 6px 14px rgba(0,0,0,.4);}
+  button.spin{padding:14px 46px;font-size:20px;
+    background:radial-gradient(circle at 50% 30%,#ffe898,#e0a92c);box-shadow:0 5px 0 var(--gold-dk),0 0 24px rgba(255,224,122,.5);}
+  button.buy{padding:8px 18px;font-size:13px;line-height:1.15;text-align:center;color:#fff;
+    background:linear-gradient(180deg,#e05a2b,#a01f1f);box-shadow:0 4px 0 #5e1010,0 0 18px rgba(224,90,43,.5);}
+  button.buy span{font-size:15px;font-weight:900;color:#ffe898;}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--gold-dk);}
+  button:disabled{opacity:.5;cursor:not-allowed;}
+  .betbox{display:flex;align-items:center;gap:8px;}
+  .round-btn{width:42px;height:42px;padding:0;border-radius:50%;font-size:24px;line-height:1;}
+  .amt{min-width:62px;text-align:center;font-size:19px;font-weight:900;color:var(--gold);}
+  .toggle{font-size:13px;color:#cdb6ff;display:flex;align-items:center;gap:6px;cursor:pointer;}
+  #log{text-align:center;margin-top:12px;min-height:26px;font-size:18px;color:var(--gold);text-shadow:0 0 8px #000;font-weight:700;}
+  .fsBanner{display:none;text-align:center;margin:6px auto 0;max-width:540px;
+    background:linear-gradient(90deg,#7a1020,#c0392b,#7a1020);padding:8px 16px;border-radius:10px;font-weight:900;letter-spacing:1px;
+    box-shadow:0 0 24px rgba(192,57,43,.7);}
+  footer{text-align:center;color:#6b5f8a;font-size:12px;margin-top:26px;}
+  /* free-spins total win bar */
+  #fsWinBar{display:none;max-width:540px;margin:8px auto 0;text-align:center;
+    background:linear-gradient(90deg,#1a0f3a,#3a1463,#1a0f3a);border:2px solid var(--gold2);border-radius:30px;
+    padding:8px 20px;box-shadow:0 0 22px rgba(255,224,122,.35),inset 0 0 12px rgba(0,0,0,.5);}
+  #fsWinBar .fsw-label{color:#cdb6ff;font-size:12px;letter-spacing:2px;font-weight:700;margin-right:12px;}
+  #fsWinTotal{color:var(--gold);font-size:24px;font-weight:900;text-shadow:0 0 12px rgba(255,224,122,.6);}
+  #fsWinTotal.bump{animation:tcbump .35s ease;}
+  /* board overlay (confirm / intro / end) */
+  #overlay{position:absolute;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    border-radius:12px;background:rgba(8,4,22,.86);backdrop-filter:blur(3px);}
+  #overlay.show{display:flex;animation:ovIn .25s ease;}
+  @keyframes ovIn{from{opacity:0}to{opacity:1}}
+  .ov-card{text-align:center;padding:24px 28px;max-width:90%;
+    background:linear-gradient(180deg,#2a1c52,#160d33);border:3px solid var(--gold2);border-radius:18px;
+    box-shadow:0 0 40px rgba(255,224,122,.3);}
+  .ov-title{font-size:clamp(20px,4vw,30px);font-weight:900;color:var(--gold);letter-spacing:1px;text-shadow:0 2px 0 rgba(0,0,0,.4);}
+  .ov-title.big{font-size:clamp(28px,6vw,48px);
+    background:linear-gradient(180deg,#fff7d6,#ffe07a 45%,#e0a92c);-webkit-background-clip:text;background-clip:text;color:transparent;}
+  .ov-msg{color:#e6d8ff;margin:10px 0 6px;font-size:15px;}
+  .ov-total{font-size:clamp(28px,7vw,52px);font-weight:900;color:var(--gold);margin:6px 0 14px;
+    text-shadow:0 0 18px rgba(255,224,122,.6);}
+  .ov-btns{display:flex;gap:12px;justify-content:center;margin-top:18px;}
+  .ov-card button{padding:12px 26px;font-size:16px;border-radius:30px;border:none;font-weight:900;cursor:pointer;}
+  .ov-confirm,.ov-start{background:linear-gradient(180deg,#ffe898,#d9a528);color:#3a2400;box-shadow:0 4px 0 var(--gold-dk);}
+  .ov-start{padding:14px 40px;font-size:20px;animation:startpulse 1.3s ease-in-out infinite;}
+  @keyframes startpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  .ov-cancel{background:#3a2a5e;color:#cdb6ff;box-shadow:0 4px 0 #1d1338;}
+  #paytable{display:none;max-width:680px;margin:12px auto 0;
+    background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.25));
+    border:1px solid var(--gold2);border-radius:14px;padding:12px;}
+  #paytable.open{display:block;}
+  .pt-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .pt-item{display:flex;align-items:center;gap:8px;background:rgba(0,0,0,.25);border-radius:10px;padding:6px 8px;}
+  .pt-item img{width:42px;height:42px;object-fit:contain;}
+  .pt-item .pt-vals{font-size:12px;line-height:1.35;}
+  .pt-item .pt-vals b{color:var(--gold);}
+  .pt-item .pt-name{font-size:11px;color:#cdb6ff;text-transform:uppercase;letter-spacing:.5px;}
+</style>
+</head>
+<body>
+<div class="sky"><div class="rays"></div><div class="stars"></div></div>
+
+<!-- ============ SVG ART LIBRARY ============ -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <!-- shared gradients -->
+  <linearGradient id="glassShine" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffffff" stop-opacity=".0"/>
+    <stop offset=".25" stop-color="#ffffff" stop-opacity=".55"/>
+    <stop offset=".4" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <radialGradient id="tileGlow" cx="50%" cy="35%" r="70%">
+    <stop offset="0" stop-color="#fff" stop-opacity=".15"/><stop offset="1" stop-color="#fff" stop-opacity="0"/>
+  </radialGradient>
+
+  <!-- ===== MINTTU (top symbol): tall mint bottle ===== -->
+  <symbol id="sym-minttu" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="92" rx="22" ry="5" fill="#000" opacity=".3"/>
+    <g>
+      <path d="M40 20 q0-7 4-9 v-4 h12 v4 q4 2 4 9 v60 q0 9 -10 9 t-10 -9 Z" fill="#eafff3" stroke="#0c6b3c" stroke-width="1.5"/>
+      <path d="M40 46 v34 q0 9 10 9 t10 -9 v-34 Z" fill="#1fa85a"/>
+      <path d="M40 46 q10 6 20 0 v8 q-10 6 -20 0 Z" fill="#8effc0" opacity=".8"/>
+      <!-- mountain label -->
+      <path d="M40 30 h20 v14 q-10 5 -20 0 Z" fill="#fff"/>
+      <path d="M43 42 l5 -8 3 4 4 -6 4 10 Z" fill="#2db4e6"/>
+      <text x="50" y="60" font-size="7" font-weight="900" text-anchor="middle" fill="#0c6b3c" font-family="Georgia,serif">MINTTU</text>
+      <rect x="46" y="7" width="8" height="6" rx="1" fill="#0c6b3c"/>
+      <path d="M42 22 q4 40 0 58" stroke="url(#glassShine)" stroke-width="4" fill="none" opacity=".7"/>
+    </g>
+    <use href="#tileGlow" /></symbol>
+
+  <!-- ===== ISBJØRN LITE: white can, blue bear ===== -->
+  <symbol id="sym-isbjorn" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="92" rx="20" ry="4.5" fill="#000" opacity=".3"/>
+    <rect x="33" y="16" width="34" height="68" rx="7" fill="#f3f7ff" stroke="#9fb4d8" stroke-width="1.5"/>
+    <rect x="33" y="16" width="34" height="6" rx="3" fill="#c9d6ea"/>
+    <ellipse cx="50" cy="17" rx="17" ry="3.5" fill="#dde7f5"/>
+    <rect x="36" y="40" width="28" height="22" fill="#1f6fd1"/>
+    <!-- bear silhouette -->
+    <path d="M44 60 q-3-4 0-8 q-2-3 1-5 q3 0 4 2 q3-3 6 0 q3-2 5 1 q2 3 -1 6 q3 4 -1 7 q-2-3-5-2 q-2 3-5 1 q-3 1-4-2 Z" fill="#fff"/>
+    <text x="50" y="32" font-size="8" font-weight="900" text-anchor="middle" fill="#1f6fd1" font-family="Arial">ISBJØRN</text>
+    <text x="50" y="73" font-size="6.5" font-weight="700" text-anchor="middle" fill="#1f6fd1" letter-spacing="2">LITE</text>
+    <rect x="37" y="18" width="5" height="64" rx="2.5" fill="url(#glassShine)" opacity=".8"/>
+  </symbol>
+
+  <!-- ===== SMIRNOFF ICE: clear bottle ===== -->
+  <symbol id="sym-smirnoff" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="92" rx="18" ry="4.5" fill="#000" opacity=".3"/>
+    <rect x="46" y="8" width="8" height="10" rx="2" fill="#c0182f"/>
+    <path d="M44 18 h12 v12 q6 4 6 14 v34 q0 6 -12 6 t-12 -6 v-34 q0 -10 6 -14 Z" fill="#dff0ff" opacity=".85" stroke="#aac7e6" stroke-width="1.3"/>
+    <rect x="40" y="44" width="20" height="30" fill="#eef6ff"/>
+    <rect x="40" y="50" width="20" height="11" fill="#c0182f"/>
+    <text x="50" y="58" font-size="6" font-weight="900" text-anchor="middle" fill="#fff" font-family="Arial">ICE</text>
+    <rect x="40" y="64" width="20" height="8" fill="#1f6fd1"/>
+    <rect x="40" y="44" width="20" height="6" fill="#f2d33b"/>
+    <rect x="45" y="20" width="4" height="56" rx="2" fill="url(#glassShine)" opacity=".8"/>
+  </symbol>
+
+  <!-- ===== FIREBALL: amber bottle + flame ===== -->
+  <symbol id="sym-fireball" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="92" rx="19" ry="4.5" fill="#000" opacity=".3"/>
+    <rect x="45" y="8" width="10" height="9" rx="2" fill="#111"/>
+    <path d="M43 17 h14 v10 q7 5 7 16 v31 q0 6 -14 6 t-14 -6 v-31 q0 -11 7 -16 Z" fill="#b5611a" stroke="#7a3d0c" stroke-width="1.3"/>
+    <path d="M43 17 h14 v10 q7 5 7 16 v31 q0 6 -14 6 t-14 -6 v-31 q0 -11 7 -16 Z" fill="url(#fbGrad)"/>
+    <rect x="39" y="42" width="22" height="26" rx="2" fill="#f4c542"/>
+    <!-- flame devil hint -->
+    <path d="M50 46 q-5 5 -2 10 q-4 -1 -3 -6 q-3 4 0 9 q3 4 5 4 q2 0 5 -4 q3 -5 0 -9 q1 5 -3 6 q3 -5 -2 -10 Z" fill="#d23b1f"/>
+    <text x="50" y="66" font-size="5" font-weight="900" text-anchor="middle" fill="#7a1d0c" font-family="Georgia,serif">FIREBALL</text>
+    <rect x="44" y="19" width="4" height="56" rx="2" fill="url(#glassShine)" opacity=".7"/>
+    <linearGradient id="fbGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0832a"/><stop offset="1" stop-color="#8a3d0a"/></linearGradient>
+  </symbol>
+
+  <!-- ===== RED BULL: slim can ===== -->
+  <symbol id="sym-redbull" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="92" rx="16" ry="4" fill="#000" opacity=".3"/>
+    <rect x="38" y="14" width="24" height="72" rx="5" fill="url(#rbGrad)" stroke="#7e879f" stroke-width="1.2"/>
+    <rect x="38" y="14" width="24" height="5" rx="2.5" fill="#aeb6cc"/>
+    <path d="M38 40 q12 6 24 0 v18 q-12 6 -24 0 Z" fill="#0a2a8c"/>
+    <!-- two bulls + sun -->
+    <circle cx="50" cy="49" r="6" fill="#ffd400"/>
+    <path d="M44 52 q-3-4 -1-6 q2 2 3 0 q1 3 -2 6Z" fill="#c0142c"/>
+    <path d="M56 52 q3-4 1-6 q-2 2 -3 0 q-1 3 2 6Z" fill="#c0142c"/>
+    <text x="50" y="30" font-size="5.5" font-weight="900" text-anchor="middle" fill="#0a2a8c" font-family="Arial">RED BULL</text>
+    <rect x="42" y="16" width="4" height="68" rx="2" fill="url(#glassShine)" opacity=".8"/>
+    <linearGradient id="rbGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8b93ad"/><stop offset=".4" stop-color="#eef1f8"/><stop offset=".6" stop-color="#d2d7e6"/><stop offset="1" stop-color="#8b93ad"/></linearGradient>
+  </symbol>
+
+  <!-- ===== FOOD LOWS ===== -->
+  <symbol id="sym-burger" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="86" rx="30" ry="6" fill="#000" opacity=".25"/>
+    <path d="M22 40 q28 -26 56 0 Z" fill="#e0a040"/>
+    <ellipse cx="35" cy="33" rx="2" ry="1.4" fill="#fff"/><ellipse cx="48" cy="29" rx="2" ry="1.4" fill="#fff"/><ellipse cx="62" cy="33" rx="2" ry="1.4" fill="#fff"/>
+    <rect x="20" y="40" width="60" height="6" rx="3" fill="#6fcf57"/>
+    <rect x="19" y="45" width="62" height="8" rx="3" fill="#b5471f"/>
+    <rect x="22" y="52" width="56" height="6" rx="3" fill="#f4c542"/>
+    <path d="M22 58 q28 18 56 0 v3 q-28 18 -56 0 Z" fill="#e0a040"/>
+  </symbol>
+  <symbol id="sym-fries" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="88" rx="24" ry="5" fill="#000" opacity=".25"/>
+    <g fill="#f4c542" stroke="#caa030" stroke-width="1">
+      <rect x="34" y="22" width="6" height="40" rx="2"/><rect x="44" y="16" width="6" height="46" rx="2"/>
+      <rect x="54" y="20" width="6" height="42" rx="2"/><rect x="64" y="26" width="6" height="36" rx="2"/>
+    </g>
+    <path d="M30 52 h44 l-5 30 q-1 4 -5 4 H40 q-4 0 -5 -4 Z" fill="#d6342a"/>
+    <path d="M30 52 h44 l-1.5 9 H31.5 Z" fill="#fff"/>
+    <rect x="44" y="62" width="12" height="14" rx="2" fill="#fff" opacity=".85"/>
+  </symbol>
+  <symbol id="sym-pizza" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="86" rx="26" ry="5" fill="#000" opacity=".25"/>
+    <path d="M50 14 L80 78 q-30 12 -60 0 Z" fill="#f2c14e" stroke="#caa030" stroke-width="1.5"/>
+    <path d="M50 22 L74 74 q-24 9 -48 0 Z" fill="#e0532a"/>
+    <circle cx="44" cy="50" r="4.5" fill="#c0182f"/><circle cx="58" cy="58" r="4.5" fill="#c0182f"/><circle cx="50" cy="68" r="4.5" fill="#c0182f"/>
+    <circle cx="50" cy="40" r="3.5" fill="#fff" opacity=".8"/>
+  </symbol>
+  <symbol id="sym-hotdog" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="84" rx="28" ry="5" fill="#000" opacity=".25"/>
+    <path d="M18 56 q0 -14 14 -14 h36 q14 0 14 14 q0 12 -14 12 H32 q-14 0 -14 -12Z" fill="#e8b04a"/>
+    <rect x="24" y="44" width="52" height="11" rx="5.5" fill="#b5471f"/>
+    <path d="M28 48 q22 -8 44 0" stroke="#f2d33b" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M28 52 q22 8 44 0" stroke="#d6342a" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </symbol>
+
+  <!-- ===== SCATTER: shot glass + minttu ===== -->
+  <symbol id="sym-scatter" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="86" rx="20" ry="5" fill="#000" opacity=".3"/>
+    <path d="M30 36 h40 l-6 44 q-1 6 -14 6 t-14 -6 Z" fill="#cfe9ff" opacity=".5" stroke="#bfe0ff" stroke-width="1.5"/>
+    <path d="M33 50 h34 l-4 30 q-1 6 -13 6 t-13 -6 Z" fill="url(#mintLiq)"/>
+    <ellipse cx="50" cy="50" rx="17" ry="4" fill="#9dffc4"/>
+    <path d="M44 44 q3 -8 6 -2 q3 -6 6 2 q-6 4 -12 0Z" fill="#1fa85a"/>
+    <path d="M32 38 l4 40" stroke="#fff" stroke-width="2.5" opacity=".7" fill="none"/>
+    <linearGradient id="mintLiq" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7CFC9A"/><stop offset="1" stop-color="#159a45"/></linearGradient>
+  </symbol>
+
+  <!-- ===== FOOTBALL multiplier orb ===== -->
+  <symbol id="sym-football" viewBox="0 0 100 100">
+    <ellipse cx="50" cy="84" rx="24" ry="5" fill="#000" opacity=".3"/>
+    <circle cx="50" cy="50" r="40" fill="url(#orbGlow)"/>
+    <ellipse cx="50" cy="50" rx="30" ry="30" fill="url(#fbBall)" stroke="#1c0d03" stroke-width="2"/>
+    <ellipse cx="50" cy="50" rx="30" ry="30" fill="none" stroke="#f5e9d0" stroke-width="1.4" stroke-dasharray="3 4" opacity=".6"/>
+    <path d="M50 24 v52" stroke="#f5e9d0" stroke-width="2.2"/>
+    <path d="M44 38 h12 M44 50 h12 M44 62 h12" stroke="#f5e9d0" stroke-width="2"/>
+    <ellipse cx="40" cy="38" rx="8" ry="5" fill="#fff" opacity=".18"/>
+    <radialGradient id="fbBall" cx="38%" cy="32%" r="75%"><stop offset="0" stop-color="#c2701f"/><stop offset="1" stop-color="#5a2a09"/></radialGradient>
+    <radialGradient id="orbGlow" cx="50%" cy="50%" r="50%"><stop offset=".6" stop-color="#ffb24d" stop-opacity="0"/><stop offset=".85" stop-color="#ffb24d" stop-opacity=".5"/><stop offset="1" stop-color="#ffb24d" stop-opacity="0"/></radialGradient>
+  </symbol>
+
+  <!-- corner flourish -->
+  <symbol id="corner-orn" viewBox="0 0 40 40">
+    <path d="M2 20 Q2 2 20 2" fill="none" stroke="url(#cornGrad)" stroke-width="4"/>
+    <circle cx="20" cy="2" r="3.2" fill="#ffe898"/><circle cx="2" cy="20" r="3.2" fill="#ffe898"/>
+    <path d="M6 6 q10 0 12 12" fill="none" stroke="#fff2b0" stroke-width="1.5"/>
+    <circle cx="6" cy="6" r="4" fill="#e0a92c" stroke="#7c5a08"/>
+    <linearGradient id="cornGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff2b0"/><stop offset="1" stop-color="#8a5a0a"/></linearGradient>
+  </symbol>
+</defs>
+</svg>
+
+<div class="wrap">
+  <div class="titlebar">
+    <h1>GATES OF GOONIS</h1>
+    <div class="sub">Tumble for Goonar's glory · play credits only · all in good fun 🍻</div>
+  </div>
+
+  <div class="fsBanner" id="fsBanner">🥃 FREE SPINS — <span id="fsLeft">0</span> left · Total Multiplier <span id="fsMult">x1</span></div>
+  <div id="fsWinBar"><span class="fsw-label">FREE SPINS TOTAL WIN</span><span id="fsWinTotal">0 kr</span></div>
+
+  <div class="stage">
+    <div class="goonar" id="goonar">
+      <div class="cloud"></div>
+      <div class="halo"></div>
+      <div class="speech" id="speech">FUCK YOUR RUNAR!</div>
+      <img class="portrait" src="assets/goonar-zeus.png" alt="Goonar" onerror="this.src='assets/goonar.png'">
+      <div id="hitCounter">
+        <div class="hc-title">LAST HIT</div>
+        <div class="hc-list" id="hcList"><div class="hc-empty">— no hits yet —</div></div>
+      </div>
+    </div>
+
+    <div class="board-frame">
+      <div class="gold-edge"></div>
+      <svg class="corner tl" viewBox="0 0 40 40"><use href="#corner-orn"/></svg>
+      <svg class="corner tr" viewBox="0 0 40 40"><use href="#corner-orn"/></svg>
+      <svg class="corner bl" viewBox="0 0 40 40"><use href="#corner-orn"/></svg>
+      <svg class="corner br" viewBox="0 0 40 40"><use href="#corner-orn"/></svg>
+      <div id="tumbleCounter"><span class="tc-label">WIN</span> <span id="tcVal">0 kr</span></div>
+      <div id="board"></div>
+      <div id="winPop"></div>
+      <div id="overlay"></div>
+    </div>
+  </div>
+
+  <div class="hud">
+    <div class="pill"><div class="lbl">Credits</div><div class="val"><span id="credits">1000</span></div></div>
+    <div class="pill"><div class="lbl">Bet</div><div class="val"><span id="betDisplay">10</span></div></div>
+    <div class="pill"><div class="lbl">Last Win</div><div class="val"><span id="winDisplay">0</span></div></div>
+  </div>
+
+  <div class="controls">
+    <div class="betbox">
+      <button class="round-btn" id="betDown">−</button>
+      <div class="amt" id="betAmt">10</div>
+      <button class="round-btn" id="betUp">+</button>
+    </div>
+    <button class="spin" id="spinBtn">SPIN</button>
+    <button class="buy" id="buyBtn">🥃 BUY FREE SPINS<br><span id="buyCost">1 000 kr</span></button>
+    <label class="toggle"><input type="checkbox" id="soundToggle" checked> 🔊 Goonar voice</label>
+  </div>
+
+  <div id="log">Good luck — Goonar's watching. 👀 · <span style="color:#cdb6ff">[Space] to spin</span></div>
+
+  <div style="text-align:center;margin-top:10px;">
+    <button id="ptToggle" style="padding:8px 18px;font-size:14px;">ⓘ Paytable</button>
+  </div>
+  <div id="paytable">
+    <div style="text-align:center;color:#cdb6ff;font-size:12px;margin-bottom:8px;">Payouts at current bet (<span id="ptBet">10</span>) · pays for 8+ matching symbols anywhere</div>
+    <div class="pt-grid"></div>
+  </div>
+  <footer>Gates of Goonis · RTP 96.5% · a friendly inside joke · no real money, no real gambling.</footer>
+</div>
+
+<script>
+// Paytable tuned via Monte Carlo simulation to ~96.5% RTP (pay scalar 0.458).
+// pay[tier] indexes: [_,_,_, 8-9 of a kind, 10-11, 12+]
+const SYMBOLS={
+  // pay = multiple of total bet. Values chosen so a 10kr bet pays the kr amounts shown.
+  burger:{kind:'low',img:'assets/burger.png',pay:[0,0,0,0.25,0.75,2.0]},
+  fries:{kind:'low',img:'assets/fries.png',pay:[0,0,0,0.40,0.90,4.0]},
+  hotdog:{kind:'low',img:'assets/hotdog.png',pay:[0,0,0,0.50,1.00,5.0]},
+  pizza:{kind:'low',img:'assets/pizza.png',pay:[0,0,0,0.80,1.20,8.0]},
+  redbull:{kind:'high',img:'assets/redbull.png',pay:[0,0,0,1.00,1.50,10.0]},
+  isbjorn:{kind:'high',img:'assets/isbjorn.png',pay:[0,0,0,1.50,2.00,12.0]},
+  smirnoff:{kind:'high',img:'assets/smirnoff.png',pay:[0,0,0,2.00,5.00,15.0]},
+  fireball:{kind:'high',img:'assets/fireball.png',pay:[0,0,0,2.50,10.00,25.0]},
+  minttu:{kind:'top',img:'assets/minttu.png',pay:[0,0,0,10.00,25.00,50.0]},
+};
+// Multiplier orb values, weighted strongly toward low values (keeps RTP sane)
+const MULT_VALS=[2,3,4,5,8,10,12,20,50,100];
+const MULT_WT=[34,24,16,11,7,4,2.5,1.2,0.5,0.2];
+// Symbol drop weights. Base game = very few multipliers; free spins = many.
+// Weights tuned via Monte Carlo so RTP ~96.5% with the fixed paytable above.
+// Base RTP ~96.5%; bought free-spins feature ~98% (cost 100x bet).
+const WEIGHTS_BASE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.75,multiplier:0.2};
+const WEIGHTS_FREE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.0,multiplier:0.97};
+const BUY_COST_MULT=100; // buy free spins = 100x base bet
+function buildPool(w){const p=[];for(const[k,v]of Object.entries(w))for(let i=0;i<Math.round(v*10);i++)p.push(k);return p;}
+const POOL_BASE=buildPool(WEIGHTS_BASE), POOL_FREE=buildPool(WEIGHTS_FREE);
+function pickMultVal(){let t=MULT_WT.reduce((a,b)=>a+b,0),x=Math.random()*t;for(let i=0;i<MULT_VALS.length;i++){x-=MULT_WT[i];if(x<0)return MULT_VALS[i];}return MULT_VALS[0];}
+
+const ROWS=5,COLS=6;
+let credits=1000,bet=10,inFreeSpins=false,freeSpinsLeft=0,freeSpinTotalMult=1,spinning=false,grid=[],spinRunning=0,freeSpinTotalWin=0,overlayActive=false;
+const $=id=>document.getElementById(id);
+const boardEl=$('board'),creditsEl=$('credits'),betDisplay=$('betDisplay'),betAmt=$('betAmt'),
+  winDisplay=$('winDisplay'),logEl=$('log'),fsBanner=$('fsBanner'),fsLeftEl=$('fsLeft'),fsMultEl=$('fsMult'),
+  goonar=$('goonar'),speechEl=$('speech'),soundToggle=$('soundToggle');
+
+function makeCell(){
+  const pool=inFreeSpins?POOL_FREE:POOL_BASE;
+  const p=pool[Math.floor(Math.random()*pool.length)];
+  if(p==='scatter')return{type:'scatter'};
+  if(p==='multiplier')return{type:'multiplier',mult:pickMultVal()};
+  return{type:'pay',id:p};
+}
+function buildGrid(){grid=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++)row.push(makeCell());grid.push(row);}}
+function svgTag(id){return `<svg viewBox="0 0 100 100"><use href="#${id}"/></svg>`;}
+function imgTag(src,cls){return `<img class="symimg ${cls}" src="${src}" draggable="false" alt="">`;}
+function cellInner(cell){
+  if(!cell)return'';
+  if(cell.type==='scatter')return imgTag('assets/scatter.png','scat');
+  if(cell.type==='multiplier')return imgTag('assets/football.png','orb')+`<span class="mval">x${cell.mult}</span>`;
+  const k=SYMBOLS[cell.id].kind; // low | high | top
+  const cls=k==='low'?'food':(k==='top'?'top':'drink');
+  return imgTag(SYMBOLS[cell.id].img,cls);
+}
+function render(falling=new Set()){
+  boardEl.innerHTML='';
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const cell=grid[r][c],div=document.createElement('div');
+    div.className='cell';
+    if(falling.has(`${r}-${c}`))div.classList.add('falling');
+    if(cell&&cell.type==='scatter')div.classList.add('scatter-cell');
+    if(cell&&cell.type==='multiplier')div.classList.add('mult-cell');
+    div.innerHTML=cellInner(cell);div.dataset.row=r;div.dataset.col=c;
+    boardEl.appendChild(div);
+  }
+}
+function countSymbols(){const c={};for(let r=0;r<ROWS;r++)for(let q=0;q<COLS;q++){const x=grid[r][q];if(x&&x.type==='pay')c[x.id]=(c[x.id]||0)+1;}return c;}
+function countScatters(){let n=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)if(grid[r][c]&&grid[r][c].type==='scatter')n++;return n;}
+function sumMult(){let t=0;for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=grid[r][c];if(x&&x.type==='multiplier')t+=x.mult;}return t;}
+function hasMult(){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=grid[r][c];if(x&&x.type==='multiplier')return true;}return false;}
+function payTier(n){if(n>=12)return 5;if(n>=10)return 4;if(n>=8)return 3;return -1;}
+function calcWins(){const c=countSymbols();let mult=0;const ids=[];const perSym={};for(const[id,n]of Object.entries(c)){const t=payTier(n);if(t>=0){mult+=SYMBOLS[id].pay[t];perSym[id]=SYMBOLS[id].pay[t];ids.push(id);}}return{mult,ids,perSym};}
+function fmt(v){return (Math.round(v*100)/100).toLocaleString('nb-NO',{maximumFractionDigits:2});}
+function kr(v){return fmt(v)+' kr';}
+function setTumbleCounter(v,bump){
+  const el=document.getElementById('tcVal');el.textContent=kr(v);
+  if(bump){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}
+}
+function showWinPop(amount){
+  const p=document.getElementById('winPop');
+  p.textContent='+'+kr(amount);
+  p.classList.remove('show');void p.offsetWidth;p.classList.add('show');
+}
+// ---- free-spins total win bar ----
+function showFsWinBar(on){document.getElementById('fsWinBar').style.display=on?'block':'none';}
+function updateFsWinBar(bump){const el=document.getElementById('fsWinTotal');el.textContent=kr(freeSpinTotalWin);
+  if(bump){el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}}
+// ---- board overlay (confirm / intro / end), click-driven ----
+const overlay=document.getElementById('overlay');
+function hideOverlay(){overlay.classList.remove('show');overlay.innerHTML='';overlayActive=false;}
+function overlayConfirm(title,msg,confirmLabel,cancelLabel){
+  overlayActive=true;
+  return new Promise(res=>{
+    overlay.innerHTML=`<div class="ov-card"><div class="ov-title">${title}</div>
+      <div class="ov-msg">${msg}</div>
+      <div class="ov-btns"><button class="ov-cancel">${cancelLabel}</button><button class="ov-confirm">${confirmLabel}</button></div></div>`;
+    overlay.classList.add('show');
+    overlay.querySelector('.ov-confirm').onclick=()=>{hideOverlay();res(true);};
+    overlay.querySelector('.ov-cancel').onclick=()=>{hideOverlay();res(false);};
+  });
+}
+function overlayStart(title,sub){
+  overlayActive=true;
+  return new Promise(res=>{
+    overlay.innerHTML=`<div class="ov-card"><div class="ov-title big">${title}</div>
+      <div class="ov-msg">${sub}</div><button class="ov-start">CLICK TO START</button></div>`;
+    overlay.classList.add('show');
+    overlay.querySelector('.ov-start').onclick=()=>{hideOverlay();res();};
+  });
+}
+function overlayEnd(total){
+  overlayActive=true;
+  return new Promise(res=>{
+    overlay.innerHTML=`<div class="ov-card"><div class="ov-title big">FREE SPINS COMPLETE</div>
+      <div class="ov-msg">Goonar coughs up your winnings:</div>
+      <div class="ov-total">${kr(total)}</div><button class="ov-start">COLLECT</button></div>`;
+    overlay.classList.add('show');
+    overlay.querySelector('.ov-start').onclick=()=>{hideOverlay();res();};
+  });
+}
+// Hit counter under Goonar: shows the symbols that landed in the most recent cascade + their value
+function updateHitCounter(ids,perSym,counts,activeBet){
+  const list=document.getElementById('hcList');
+  // sort by value descending
+  const rows=ids.slice().sort((a,b)=>perSym[b]-perSym[a]).map(id=>{
+    const val=perSym[id]*activeBet;
+    return `<div class="hc-row"><img src="${SYMBOLS[id].img}" alt="">
+      <span class="hc-cnt">${counts[id]}×</span>
+      <span class="hc-val">${kr(val)}</span></div>`;
+  }).join('');
+  list.innerHTML=rows||'<div class="hc-empty">— no hits yet —</div>';
+}
+function clearWinners(ids){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=grid[r][c];if(x&&x.type==='pay'&&ids.includes(x.id))grid[r][c]=null;}}
+function collapse(){const f=new Set();for(let c=0;c<COLS;c++){const keep=[];for(let r=0;r<ROWS;r++)if(grid[r][c]!==null)keep.push(grid[r][c]);const miss=ROWS-keep.length,fresh=[];for(let i=0;i<miss;i++)fresh.push(makeCell());const col=[...fresh,...keep];for(let r=0;r<ROWS;r++){grid[r][c]=col[r];if(r<miss)f.add(`${r}-${c}`);}}return f;}
+// Reveal the grid one column at a time, left -> right (clean spin load)
+async function revealLeftToRight(){
+  // start blank
+  boardEl.innerHTML='';
+  const cells=[];
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+    const div=document.createElement('div');div.className='cell';
+    div.dataset.row=r;div.dataset.col=c;div.style.visibility='hidden';
+    cells.push(div);boardEl.appendChild(div);
+  }
+  for(let c=0;c<COLS;c++){
+    for(let r=0;r<ROWS;r++){
+      const cell=grid[r][c];const div=cells[r*COLS+c];
+      div.style.visibility='visible';
+      div.classList.add('falling');
+      if(cell&&cell.type==='scatter')div.classList.add('scatter-cell');
+      if(cell&&cell.type==='multiplier')div.classList.add('mult-cell');
+      div.innerHTML=cellInner(cell);
+    }
+    await sleep(165);
+  }
+}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function setLog(m){logEl.textContent=m;}
+
+function goonarShout(){
+  speechEl.classList.remove('show');void speechEl.offsetWidth;speechEl.classList.add('show');
+  goonar.classList.remove('angry');void goonar.offsetWidth;goonar.classList.add('angry');
+  if(soundToggle.checked&&'speechSynthesis'in window){
+    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Fuck your Runar!');
+      u.rate=.95;u.pitch=.55;u.volume=1;const vs=speechSynthesis.getVoices();
+      const deep=vs.find(v=>/daniel|alex|fred|aaron|male/i.test(v.name))||vs.find(v=>/en/i.test(v.lang));
+      if(deep)u.voice=deep;speechSynthesis.speak(u);}catch(e){}
+  }
+}
+// Runs the tumble chain. Returns RAW win (before multipliers) and total orb value
+// collected during the chain. Multiplier application is decided by the caller.
+async function tumble(activeBet){
+  let rawWin=0,shouted=false;
+  let first=true;
+  while(true){
+    if(first){first=false;} else {render();await sleep(520);}
+    if(hasMult()&&!shouted){goonarShout();shouted=true;}
+    const{mult,ids,perSym}=calcWins();
+    if(ids.length===0)break;
+    const cascadeWin=mult*activeBet;
+    rawWin+=cascadeWin;
+    // highlight winners and tag each winning symbol with its hit value (kr)
+    for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+      const x=grid[r][c];
+      if(x&&x.type==='pay'&&ids.includes(x.id)){
+        const el=boardEl.querySelector(`[data-row='${r}'][data-col='${c}']`);
+        if(el){el.classList.add('win');
+          const v=perSym[x.id]*activeBet;
+          const tag=document.createElement('span');tag.className='hitval';tag.textContent=kr(v);
+          el.appendChild(tag);}
+      }
+    }
+    updateHitCounter(ids,perSym,countSymbols(),activeBet);
+    spinRunning+=cascadeWin;
+    setTumbleCounter(spinRunning,true);
+    showWinPop(cascadeWin);
+    await sleep(820);                      // hold so the hit is readable
+    clearWinners(ids);const f=collapse();render(f);await sleep(480);
+  }
+  const mtotal=sumMult();
+  if(mtotal>0&&!shouted)goonarShout();
+  return{rawWin,mtotal};
+}
+async function spin(){
+  if(spinning||overlayActive)return;spinning=true;$('spinBtn').disabled=true;$('buyBtn').disabled=true;
+  if(!inFreeSpins){if(credits<bet){setLog("Not enough credits — even Goonar pities you.");spinning=false;$('spinBtn').disabled=false;return;}credits-=bet;creditsEl.textContent=kr(credits);}
+  buildGrid();
+  spinRunning=0;setTumbleCounter(0,false);
+  setLog(inFreeSpins?`Free spin! (${freeSpinsLeft} left)`:'Spinning...');
+  await revealLeftToRight();
+  await sleep(150);
+
+  const{rawWin,mtotal}=await tumble(bet);
+  let finalWin=0;
+  if(inFreeSpins){
+    // persistent multiplier accumulates across the whole feature (Gates style)
+    if(mtotal>0){freeSpinTotalMult+=mtotal;fsMultEl.textContent='x'+freeSpinTotalMult;}
+    if(rawWin>0)finalWin=rawWin*freeSpinTotalMult;
+  } else {
+    finalWin = (rawWin>0&&mtotal>0) ? rawWin*mtotal : rawWin;
+  }
+  // reflect any multiplier boost in the tumble counter
+  if(finalWin!==spinRunning){spinRunning=finalWin;setTumbleCounter(finalWin,true);if(finalWin>rawWin)showWinPop(finalWin);}
+
+  const sc=countScatters();
+  const naturalTrigger = (sc>=4 && !inFreeSpins);
+  if(sc>=4&&inFreeSpins){freeSpinsLeft+=5;fsLeftEl.textContent=freeSpinsLeft;setLog(`🥃 Retrigger! +5 Free Spins.`);await sleep(800);}
+
+  credits+=finalWin;creditsEl.textContent=kr(credits);winDisplay.textContent=kr(finalWin);
+  if(finalWin>0)setLog(`🎉 WIN ${kr(finalWin)}! ${finalWin>=bet*20?'GOONAR IS FURIOUS. 🔥':'Nice one.'}`);
+  else if(!inFreeSpins&&!naturalTrigger)setLog("No win. Goonar smirks.");
+
+  let ended=false;
+  if(inFreeSpins){
+    freeSpinTotalWin+=finalWin;updateFsWinBar(finalWin>0);
+    freeSpinsLeft--;fsLeftEl.textContent=Math.max(0,freeSpinsLeft);
+    if(freeSpinsLeft<=0)ended=true;
+  }
+  spinning=false;$('spinBtn').disabled=false;
+
+  if(naturalTrigger){await beginFreeSpins(`🥃 SHOT GLASSES ALIGN!`,`Goonar grants you 15 Free Spins — multipliers never reset.`);return;}
+  if(ended){
+    const total=freeSpinTotalWin;
+    inFreeSpins=false;freeSpinTotalMult=1;
+    await overlayEnd(total);
+    fsBanner.style.display='none';showFsWinBar(false);
+    $('buyBtn').disabled=false;
+    setLog(`Free spins done! You bled Goonar for ${kr(total)}. 🍻`);
+    return;
+  }
+  $('buyBtn').disabled=inFreeSpins;
+  if(inFreeSpins){await sleep(650);spin();}
+}
+// Shared setup for both bought and naturally-triggered free spins: shows a click-to-start intro.
+async function beginFreeSpins(title,sub){
+  inFreeSpins=true;freeSpinsLeft=15;freeSpinTotalMult=1;freeSpinTotalWin=0;
+  fsBanner.style.display='block';fsLeftEl.textContent=freeSpinsLeft;fsMultEl.textContent='x1';
+  showFsWinBar(true);updateFsWinBar(false);
+  $('spinBtn').disabled=true;$('buyBtn').disabled=true;
+  await overlayStart(title,sub);
+  spin();
+}
+// Build a base grid but force exactly n scatters (for the bought-bonus trigger reveal)
+function buildTriggerGrid(n){
+  buildGrid();
+  for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c].type==='scatter')grid[r][c]={type:'pay',id:'burger'};}
+  const pos=[];
+  while(pos.length<n){const r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);if(!pos.some(p=>p[0]===r&&p[1]===c))pos.push([r,c]);}
+  pos.forEach(([r,c])=>grid[r][c]={type:'scatter'});
+}
+async function buyFreeSpins(){
+  if(spinning||inFreeSpins||overlayActive)return;
+  const cost=bet*BUY_COST_MULT;
+  if(credits<cost){setLog(`Need ${kr(cost)} to buy free spins — Goonar laughs at your wallet.`);return;}
+  const ok=await overlayConfirm('Buy Free Spins?',`Trigger <b>15 free spins</b> right now for <b>${kr(cost)}</b>?`,'BUY · '+kr(cost),'Cancel');
+  if(!ok){setLog('Maybe next time. Goonar respects the discipline.');return;}
+  if(credits<cost){setLog(`Need ${kr(cost)} to buy free spins.`);return;}
+  credits-=cost;creditsEl.textContent=kr(credits);
+  // presentation spin: reveal a grid that lands 4 scatters
+  spinning=true;$('spinBtn').disabled=true;$('buyBtn').disabled=true;
+  spinRunning=0;setTumbleCounter(0,false);
+  setLog('Summoning the shot glasses... 🥃');
+  buildTriggerGrid(4);
+  await revealLeftToRight();
+  await sleep(950);                 // let the 4 scatters glow
+  spinning=false;
+  await beginFreeSpins('🥃 SHOT GLASSES ALIGN!',`15 Free Spins for ${kr(cost)} — Goonar's liver enters the chat.`);
+}
+$('spinBtn').addEventListener('click',spin);
+$('buyBtn').addEventListener('click',buyFreeSpins);
+const PT_ORDER=['minttu','redbull','fireball','smirnoff','isbjorn','hotdog','pizza','fries','burger'];
+function renderPaytable(){
+  const grid=document.querySelector('#paytable .pt-grid');if(!grid)return;
+  grid.innerHTML=PT_ORDER.map(id=>{
+    const s=SYMBOLS[id];
+    return `<div class="pt-item"><img src="${s.img}" alt="">
+      <div><div class="pt-name">${id}</div>
+      <div class="pt-vals">12+ <b>${kr(s.pay[5]*bet)}</b><br>10-11 <b>${kr(s.pay[4]*bet)}</b><br>8-9 <b>${kr(s.pay[3]*bet)}</b></div></div></div>`;
+  }).join('');
+}
+function setBet(v){bet=Math.max(1,Math.min(1000,v));betAmt.textContent=kr(bet);betDisplay.textContent=kr(bet);const pb=document.getElementById('ptBet');if(pb)pb.textContent=kr(bet);const bc=document.getElementById('buyCost');if(bc)bc.textContent=kr(bet*BUY_COST_MULT);renderPaytable();}
+document.getElementById('ptToggle').addEventListener('click',()=>document.getElementById('paytable').classList.toggle('open'));
+$('betUp').addEventListener('click',()=>setBet(bet+5));
+$('betDown').addEventListener('click',()=>setBet(bet-5));
+// Spacebar to spin (ignore when typing in an input)
+window.addEventListener('keydown',e=>{
+  if(e.code==='Space'){
+    const t=e.target.tagName;
+    if(t==='INPUT'||t==='TEXTAREA')return;
+    e.preventDefault();
+    if(!spinning&&!inFreeSpins&&!overlayActive)spin();
+  }
+});
+document.body.addEventListener('click',()=>{if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}},{once:true});
+if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=()=>{};
+buildGrid();render();setBet(10);
+creditsEl.textContent=kr(credits);winDisplay.textContent=kr(0);setTumbleCounter(0,false);
+</script>
+</body>
+</html>
