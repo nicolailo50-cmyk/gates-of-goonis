@@ -530,16 +530,17 @@ const SYMBOLS={
 };
 // Multiplier orb values, weighted strongly toward low values (keeps RTP sane)
 const MULT_VALS=[2,3,4,5,8,10,12,20,50,100];
-const MULT_WT=[34,24,16,11,7,4,2.5,1.2,0.5,0.2];
+const MULT_WT=[34,24,16,11,7,4,2.5,1.2,0.5,0.2];        // base game: small orbs
+const MULT_WT_FREE=[10,11,11,11,11,9,7,5,2.5,1.2];      // free spins: bigger orbs on average
 // Symbol drop weights. Base game = very few multipliers; free spins = many.
 // Weights tuned via Monte Carlo so RTP ~96.5% with the fixed paytable above.
 // Base RTP ~96.5%; bought free-spins feature ~98% (cost 100x bet).
-const WEIGHTS_BASE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:2.38,multiplier:0.2};
-const WEIGHTS_FREE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.0,multiplier:0.97};
+const WEIGHTS_BASE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:2.25,multiplier:0.2};
+const WEIGHTS_FREE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.0,multiplier:2.05};
 const BUY_COST_MULT=100; // buy free spins = 100x base bet
 function buildPool(w){const p=[];for(const[k,v]of Object.entries(w))for(let i=0;i<Math.round(v*10);i++)p.push(k);return p;}
 const POOL_BASE=buildPool(WEIGHTS_BASE), POOL_FREE=buildPool(WEIGHTS_FREE);
-function pickMultVal(){let t=MULT_WT.reduce((a,b)=>a+b,0),x=Math.random()*t;for(let i=0;i<MULT_VALS.length;i++){x-=MULT_WT[i];if(x<0)return MULT_VALS[i];}return MULT_VALS[0];}
+function pickMultVal(){const wt=inFreeSpins?MULT_WT_FREE:MULT_WT;let t=wt.reduce((a,b)=>a+b,0),x=Math.random()*t;for(let i=0;i<MULT_VALS.length;i++){x-=wt[i];if(x<0)return MULT_VALS[i];}return MULT_VALS[0];}
 
 const ROWS=5,COLS=6;
 let credits=1000,bet=10,inFreeSpins=false,freeSpinsLeft=0,freeSpinTotalMult=1,spinning=false,grid=[],spinRunning=0,freeSpinTotalWin=0,overlayActive=false;
@@ -770,9 +771,13 @@ async function spin(){
   const{rawWin,mtotal}=await tumble(bet);
   let finalWin=0;
   if(inFreeSpins){
-    // persistent multiplier accumulates across the whole feature (Gates style)
-    if(mtotal>0){freeSpinTotalMult+=mtotal;fsMultEl.textContent='x'+freeSpinTotalMult;}
-    if(rawWin>0)finalWin=rawWin*freeSpinTotalMult;
+    // Gates rule: orbs only count on a WINNING spin. A win with no orbs leaves the total unchanged.
+    if(rawWin>0){
+      if(mtotal>0)freeSpinTotalMult+=mtotal;
+      const applied=freeSpinTotalMult>0?freeSpinTotalMult:1;
+      finalWin=rawWin*applied;
+      fsMultEl.textContent='x'+(freeSpinTotalMult>0?freeSpinTotalMult:1);
+    }
   } else {
     finalWin = (rawWin>0&&mtotal>0) ? rawWin*mtotal : rawWin;
   }
@@ -781,7 +786,7 @@ async function spin(){
 
   const sc=countScatters();
   const naturalTrigger = (sc>=4 && !inFreeSpins);
-  if(sc>=4&&inFreeSpins){freeSpinsLeft+=5;fsLeftEl.textContent=freeSpinsLeft;setLog(`🥃 Retrigger! +5 Free Spins.`);await sleep(800);}
+  if(sc>=3&&inFreeSpins){freeSpinsLeft+=5;fsLeftEl.textContent=freeSpinsLeft;setLog(`🥃 Retrigger! +5 Free Spins.`);goonarShout();await sleep(800);}
 
   winDisplay.textContent=kr(finalWin);
   // BALANCE: only update live in the base game. During free spins it's frozen and paid out at the end.
@@ -816,7 +821,7 @@ async function spin(){
 }
 // Shared setup for both bought and naturally-triggered free spins: shows a click-to-start intro.
 async function beginFreeSpins(title,sub){
-  inFreeSpins=true;freeSpinsLeft=15;freeSpinTotalMult=1;freeSpinTotalWin=0;
+  inFreeSpins=true;freeSpinsLeft=15;freeSpinTotalMult=0;freeSpinTotalWin=0;
   fsBanner.style.display='block';fsLeftEl.textContent=freeSpinsLeft;fsMultEl.textContent='x1';
   showFsWinBar(true);updateFsWinBar(false);
   $('spinBtn').disabled=true;$('buyBtn').disabled=true;
