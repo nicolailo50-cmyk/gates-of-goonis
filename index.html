@@ -68,7 +68,7 @@
   .goonar.shout-glow .portrait{box-shadow:0 0 0 3px #ffae3a,0 0 28px 8px rgba(255,140,30,.9),0 0 60px 20px rgba(255,90,20,.55);}
   .goonar.shout-glow .halo{background:radial-gradient(circle,rgba(255,170,60,.95),transparent 65%);transform:scale(1.25);}
   @keyframes shake{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-6px) rotate(-2deg)}40%{transform:translateX(6px) rotate(2deg)}60%{transform:translateX(-5px) rotate(-1.5deg)}80%{transform:translateX(5px) rotate(1.5deg)}}
-  .speech{position:absolute;top:2%;left:50%;transform:translateX(-50%) scale(.5);z-index:6;
+  .speech{position:absolute;top:2%;left:50%;transform:translateX(-50%) scale(.5);z-index:6;text-transform:uppercase;
     background:#fff;color:#11061f;font-weight:900;font-size:15px;padding:9px 15px;border-radius:16px;white-space:nowrap;
     opacity:0;box-shadow:0 6px 18px rgba(0,0,0,.5);}
   .speech::after{content:'';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);border:9px solid transparent;border-top-color:#fff;}
@@ -726,15 +726,22 @@ function goonarReact(){
 }
 // visual + voice line with matching speech bubble; natural rate/pitch for a more human voice
 function goonarSpeak(text){
-  speechEl.textContent=text;
+  speechEl.textContent=text;                 // visual bubble (uppercased via CSS) — always shows
   speechEl.classList.remove('show');void speechEl.offsetWidth;speechEl.classList.add('show');
   goonarReact();
   if(soundToggle.checked&&'speechSynthesis'in window){
-    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);
-      u.rate=1.0;u.pitch=1.0;u.volume=1;const vs=speechSynthesis.getVoices();
-      const pref=vs.find(v=>/Daniel|Samantha|Aaron|Arthur|Google US English|Google UK English Male/i.test(v.name))
-                ||vs.find(v=>/en[-_]?(US|GB)/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));
-      if(pref)u.voice=pref;speechSynthesis.speak(u);}catch(e){}
+    try{
+      const u=new SpeechSynthesisUtterance(text);
+      u.rate=1.0;u.pitch=1.0;u.volume=1;u.lang='en-US';
+      const vs=speechSynthesis.getVoices();   // may be [] until loaded; default voice still works
+      if(vs&&vs.length){
+        const pref=vs.find(v=>/Daniel|Aaron|Arthur|Google UK English Male|Google US English/i.test(v.name))
+                  ||vs.find(v=>/^en[-_]?(US|GB)/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));
+        if(pref)u.voice=pref;
+      }
+      speechSynthesis.resume();               // iOS sometimes parks the queue
+      speechSynthesis.speak(u);
+    }catch(e){}
   }
 }
 // Runs the tumble chain. Returns RAW win (before multipliers) and total orb value
@@ -744,7 +751,7 @@ async function tumble(activeBet){
   let first=true;
   while(true){
     if(first){first=false;} else {render();await sleep(520);}
-    if(hasMult()&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck your Runar!');shouted=true;}
+    if(hasMult()&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck you Goonar!');shouted=true;}
     const{mult,ids,perSym}=calcWins();
     if(ids.length===0)break;
     const cascadeWin=mult*activeBet;
@@ -768,7 +775,7 @@ async function tumble(activeBet){
     clearWinners(ids);const f=collapse();render(f);await sleep(640); // let the staggered fall land
   }
   const mtotal=sumMult();
-  if(mtotal>0&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck your Runar!');}
+  if(mtotal>0&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck you Goonar!');}
   return{rawWin,mtotal};
 }
 async function spin(){
