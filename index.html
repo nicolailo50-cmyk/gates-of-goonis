@@ -65,6 +65,8 @@
     box-shadow:0 0 0 3px var(--gold2),0 0 0 6px #5b3d0a,0 12px 30px rgba(0,0,0,.7);
     filter:contrast(1.06) saturate(1.12) drop-shadow(0 0 10px rgba(0,0,0,.5));}
   .goonar.angry .portrait{animation:shake .5s ease;}
+  .goonar.shout-glow .portrait{box-shadow:0 0 0 3px #ffae3a,0 0 28px 8px rgba(255,140,30,.9),0 0 60px 20px rgba(255,90,20,.55);}
+  .goonar.shout-glow .halo{background:radial-gradient(circle,rgba(255,170,60,.95),transparent 65%);transform:scale(1.25);}
   @keyframes shake{0%,100%{transform:translateX(0) rotate(0)}20%{transform:translateX(-6px) rotate(-2deg)}40%{transform:translateX(6px) rotate(2deg)}60%{transform:translateX(-5px) rotate(-1.5deg)}80%{transform:translateX(5px) rotate(1.5deg)}}
   .speech{position:absolute;top:2%;left:50%;transform:translateX(-50%) scale(.5);z-index:6;
     background:#fff;color:#11061f;font-weight:900;font-size:15px;padding:9px 15px;border-radius:16px;white-space:nowrap;
@@ -138,8 +140,9 @@
   @keyframes winpop{0%{opacity:0;transform:translate(-50%,-50%) scale(.5)}25%{opacity:1;transform:translate(-50%,-50%) scale(1.15)}40%{transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translate(-50%,-55%) scale(1)}}
   .cell.win{animation:pop .45s ease forwards;}
   @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.2)}100%{transform:scale(0);opacity:0}}
-  .cell.falling{animation:drop .32s cubic-bezier(.3,1.3,.5,1);}
-  @keyframes drop{0%{transform:translateY(-95px);opacity:0}100%{transform:translateY(0);opacity:1}}
+  .cell{will-change:transform;}
+  .cell.falling{animation:drop .5s cubic-bezier(.25,.9,.3,1) both;}
+  @keyframes drop{0%{transform:translateY(-120%);opacity:0}60%{opacity:1}80%{transform:translateY(4%)}100%{transform:translateY(0);opacity:1}}
   .cell.scatter-cell{box-shadow:inset 0 0 0 2px #8fffc0,0 0 20px #2ec27e;animation:scpulse 1.2s ease-in-out infinite;}
   @keyframes scpulse{0%,100%{box-shadow:inset 0 0 0 2px #8fffc0,0 0 12px #2ec27e}50%{box-shadow:inset 0 0 0 2px #c8ffe0,0 0 26px #43e39a}}
   .cell.mult-cell svg{animation:orbland .5s ease;}
@@ -199,6 +202,25 @@
   .ov-start{padding:14px 40px;font-size:20px;animation:startpulse 1.3s ease-in-out infinite;}
   @keyframes startpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
   .ov-cancel{background:#3a2a5e;color:#cdb6ff;box-shadow:0 4px 0 #1d1338;}
+  /* anticipation: board glows green while the last reels crawl in */
+  #board.anticipation{animation:antic .55s ease-in-out infinite alternate;}
+  @keyframes antic{from{box-shadow:0 0 0 rgba(67,227,154,0)}to{box-shadow:0 0 26px 6px rgba(67,227,154,.6)}}
+  /* big-win celebration "pay page" */
+  #bigwin{position:absolute;inset:0;z-index:30;display:none;align-items:center;justify-content:center;border-radius:12px;
+    background:radial-gradient(circle at 50% 45%,rgba(60,30,10,.82),rgba(8,4,22,.92));backdrop-filter:blur(2px);}
+  #bigwin.show{display:flex;animation:ovIn .25s ease;}
+  #bigwin .bw-rays{position:absolute;width:160%;height:160%;
+    background:conic-gradient(from 0deg,rgba(255,210,90,.0) 0deg,rgba(255,210,90,.22) 8deg,rgba(255,210,90,0) 16deg,
+      rgba(255,210,90,0) 30deg,rgba(255,210,90,.22) 38deg,rgba(255,210,90,0) 46deg);animation:spin 14s linear infinite;}
+  #bigwin .bw-card{position:relative;text-align:center;}
+  #bigwin .bw-title{font-weight:900;letter-spacing:2px;font-size:clamp(34px,9vw,72px);
+    background:linear-gradient(180deg,#fff7d6,#ffe07a 45%,#e0a92c);-webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 3px 0 rgba(0,0,0,.3);animation:bwpop .5s cubic-bezier(.2,1.5,.4,1) both;}
+  #bigwin .bw-amt{font-size:clamp(30px,8vw,60px);font-weight:900;color:#fff;margin-top:6px;
+    text-shadow:0 0 16px #ffb24d,0 0 32px #ff7a00,0 3px 4px #000;}
+  #bigwin.t2 .bw-title{font-size:clamp(40px,10vw,84px);}
+  #bigwin.t3 .bw-title{font-size:clamp(44px,11vw,96px);filter:drop-shadow(0 0 14px rgba(255,120,30,.7));}
+  @keyframes bwpop{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
 
   /* ============ iPHONE / PORTRAIT: fit everything on one screen, no scroll ============ */
   @media (max-width: 600px){
@@ -457,6 +479,7 @@
       <div id="tumbleCounter"><span class="tc-label">WIN</span> <span id="tcVal">0 kr</span></div>
       <div id="board"></div>
       <div id="winPop"></div>
+      <div id="bigwin"></div>
       <div id="overlay"></div>
     </div>
   </div>
@@ -511,7 +534,7 @@ const MULT_WT=[34,24,16,11,7,4,2.5,1.2,0.5,0.2];
 // Symbol drop weights. Base game = very few multipliers; free spins = many.
 // Weights tuned via Monte Carlo so RTP ~96.5% with the fixed paytable above.
 // Base RTP ~96.5%; bought free-spins feature ~98% (cost 100x bet).
-const WEIGHTS_BASE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.75,multiplier:0.2};
+const WEIGHTS_BASE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:2.38,multiplier:0.2};
 const WEIGHTS_FREE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.0,multiplier:0.97};
 const BUY_COST_MULT=100; // buy free spins = 100x base bet
 function buildPool(w){const p=[];for(const[k,v]of Object.entries(w))for(let i=0;i<Math.round(v*10);i++)p.push(k);return p;}
@@ -525,14 +548,22 @@ const boardEl=$('board'),creditsEl=$('credits'),betDisplay=$('betDisplay'),betAm
   winDisplay=$('winDisplay'),logEl=$('log'),fsBanner=$('fsBanner'),fsLeftEl=$('fsLeft'),fsMultEl=$('fsMult'),
   goonar=$('goonar'),speechEl=$('speech'),soundToggle=$('soundToggle');
 
-function makeCell(){
+// noScatter=true rerolls any scatter into a non-scatter symbol (max one scatter per reel/column)
+function makeCell(noScatter){
   const pool=inFreeSpins?POOL_FREE:POOL_BASE;
-  const p=pool[Math.floor(Math.random()*pool.length)];
+  let p=pool[Math.floor(Math.random()*pool.length)];
+  if(noScatter){let g=0;while(p==='scatter'&&g++<24)p=pool[Math.floor(Math.random()*pool.length)];}
   if(p==='scatter')return{type:'scatter'};
   if(p==='multiplier')return{type:'multiplier',mult:pickMultVal()};
   return{type:'pay',id:p};
 }
-function buildGrid(){grid=[];for(let r=0;r<ROWS;r++){const row=[];for(let c=0;c<COLS;c++)row.push(makeCell());grid.push(row);}}
+function buildGrid(){
+  grid=Array.from({length:ROWS},()=>new Array(COLS));
+  for(let c=0;c<COLS;c++){
+    let hasScat=false;
+    for(let r=0;r<ROWS;r++){const cell=makeCell(hasScat);if(cell.type==='scatter')hasScat=true;grid[r][c]=cell;}
+  }
+}
 function svgTag(id){return `<svg viewBox="0 0 100 100"><use href="#${id}"/></svg>`;}
 function imgTag(src,cls){return `<img class="symimg ${cls}" src="${src}" draggable="false" alt="">`;}
 function cellInner(cell){
@@ -548,7 +579,7 @@ function render(falling=new Set()){
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
     const cell=grid[r][c],div=document.createElement('div');
     div.className='cell';
-    if(falling.has(`${r}-${c}`))div.classList.add('falling');
+    if(falling.has(`${r}-${c}`)){div.classList.add('falling');div.style.animationDelay=(r*0.05)+'s';}
     if(cell&&cell.type==='scatter')div.classList.add('scatter-cell');
     if(cell&&cell.type==='multiplier')div.classList.add('mult-cell');
     div.innerHTML=cellInner(cell);div.dataset.row=r;div.dataset.col=c;
@@ -571,6 +602,26 @@ function showWinPop(amount){
   const p=document.getElementById('winPop');
   p.textContent='+'+kr(amount);
   p.classList.remove('show');void p.offsetWidth;p.classList.add('show');
+}
+// big-win "pay page": celebration for wins over a threshold (multiple of base bet)
+function winTier(amount){
+  if(amount>=120*bet)return{name:"GOOONIS WIN!",cls:'t3'};
+  if(amount>=60*bet) return{name:'MEGA WIN!',cls:'t2'};
+  if(amount>=20*bet) return{name:'BIG WIN!',cls:'t1'};
+  return null;
+}
+async function bigWinPage(amount){
+  const t=winTier(amount);if(!t)return;
+  goonarShout();
+  const bw=document.getElementById('bigwin');
+  bw.className='show '+t.cls;
+  bw.innerHTML=`<div class="bw-rays"></div><div class="bw-card"><div class="bw-title">${t.name}</div><div class="bw-amt">0 kr</div></div>`;
+  const amtEl=bw.querySelector('.bw-amt');
+  const dur=t.cls==='t3'?2200:t.cls==='t2'?1700:1300, start=performance.now();
+  await new Promise(res=>{(function step(now){const p=Math.min(1,(now-start)/dur);amtEl.textContent=kr(amount*p);if(p<1)requestAnimationFrame(step);else res();})(start);});
+  amtEl.textContent=kr(amount);
+  await sleep(900);
+  bw.className='';
 }
 // ---- free-spins total win bar ----
 function showFsWinBar(on){document.getElementById('fsWinBar').style.display=on?'block':'none';}
@@ -622,10 +673,9 @@ function updateHitCounter(ids,perSym,counts,activeBet){
   list.innerHTML=rows||'<div class="hc-empty">— no hits yet —</div>';
 }
 function clearWinners(ids){for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){const x=grid[r][c];if(x&&x.type==='pay'&&ids.includes(x.id))grid[r][c]=null;}}
-function collapse(){const f=new Set();for(let c=0;c<COLS;c++){const keep=[];for(let r=0;r<ROWS;r++)if(grid[r][c]!==null)keep.push(grid[r][c]);const miss=ROWS-keep.length,fresh=[];for(let i=0;i<miss;i++)fresh.push(makeCell());const col=[...fresh,...keep];for(let r=0;r<ROWS;r++){grid[r][c]=col[r];if(r<miss)f.add(`${r}-${c}`);}}return f;}
+function collapse(){const f=new Set();for(let c=0;c<COLS;c++){const keep=[];for(let r=0;r<ROWS;r++)if(grid[r][c]!==null)keep.push(grid[r][c]);let hasScat=keep.some(x=>x&&x.type==='scatter');const miss=ROWS-keep.length,fresh=[];for(let i=0;i<miss;i++){const cell=makeCell(hasScat);if(cell.type==='scatter')hasScat=true;fresh.push(cell);}const col=[...fresh,...keep];for(let r=0;r<ROWS;r++){grid[r][c]=col[r];if(r<miss)f.add(`${r}-${c}`);}}return f;}
 // Reveal the grid one column at a time, left -> right (clean spin load)
 async function revealLeftToRight(){
-  // start blank
   boardEl.innerHTML='';
   const cells=[];
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
@@ -633,24 +683,40 @@ async function revealLeftToRight(){
     div.dataset.row=r;div.dataset.col=c;div.style.visibility='hidden';
     cells.push(div);boardEl.appendChild(div);
   }
+  let scattersSoFar=0;
   for(let c=0;c<COLS;c++){
+    let colHasScatter=false;
     for(let r=0;r<ROWS;r++){
       const cell=grid[r][c];const div=cells[r*COLS+c];
       div.style.visibility='visible';
+      div.style.animationDelay=(r*0.06)+'s';   // stagger so the column visibly pours in top->bottom
       div.classList.add('falling');
-      if(cell&&cell.type==='scatter')div.classList.add('scatter-cell');
+      if(cell&&cell.type==='scatter'){div.classList.add('scatter-cell');colHasScatter=true;}
       if(cell&&cell.type==='multiplier')div.classList.add('mult-cell');
       div.innerHTML=cellInner(cell);
     }
-    await sleep(165);
+    if(colHasScatter)scattersSoFar++;
+    // anticipation: once 3 scatters are showing and reels remain, slow the rest right down
+    const remaining=COLS-1-c;
+    if(scattersSoFar>=3 && remaining>0){
+      boardEl.classList.add('anticipation');
+      if(scattersSoFar>=3&&colHasScatter)goonarShout();
+      await sleep(950);
+    } else {
+      await sleep(230);   // smoother, a little slower than before
+    }
   }
+  boardEl.classList.remove('anticipation');
 }
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function setLog(m){logEl.textContent=m;}
 
+let shoutGlowTimer=null;
 function goonarShout(){
   speechEl.classList.remove('show');void speechEl.offsetWidth;speechEl.classList.add('show');
   goonar.classList.remove('angry');void goonar.offsetWidth;goonar.classList.add('angry');
+  goonar.classList.add('shout-glow');
+  clearTimeout(shoutGlowTimer);shoutGlowTimer=setTimeout(()=>goonar.classList.remove('shout-glow'),1400);
   if(soundToggle.checked&&'speechSynthesis'in window){
     try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Fuck your Runar!');
       u.rate=.95;u.pitch=.55;u.volume=1;const vs=speechSynthesis.getVoices();
@@ -686,7 +752,7 @@ async function tumble(activeBet){
     setTumbleCounter(spinRunning,true);
     showWinPop(cascadeWin);
     await sleep(820);                      // hold so the hit is readable
-    clearWinners(ids);const f=collapse();render(f);await sleep(480);
+    clearWinners(ids);const f=collapse();render(f);await sleep(640); // let the staggered fall land
   }
   const mtotal=sumMult();
   if(mtotal>0&&!shouted)goonarShout();
@@ -717,7 +783,9 @@ async function spin(){
   const naturalTrigger = (sc>=4 && !inFreeSpins);
   if(sc>=4&&inFreeSpins){freeSpinsLeft+=5;fsLeftEl.textContent=freeSpinsLeft;setLog(`🥃 Retrigger! +5 Free Spins.`);await sleep(800);}
 
-  credits+=finalWin;creditsEl.textContent=kr(credits);winDisplay.textContent=kr(finalWin);
+  winDisplay.textContent=kr(finalWin);
+  // BALANCE: only update live in the base game. During free spins it's frozen and paid out at the end.
+  if(!inFreeSpins){credits+=finalWin;creditsEl.textContent=kr(credits);}
   if(finalWin>0)setLog(`🎉 WIN ${kr(finalWin)}! ${finalWin>=bet*20?'GOONAR IS FURIOUS. 🔥':'Nice one.'}`);
   else if(!inFreeSpins&&!naturalTrigger)setLog("No win. Goonar smirks.");
 
@@ -727,20 +795,24 @@ async function spin(){
     freeSpinsLeft--;fsLeftEl.textContent=Math.max(0,freeSpinsLeft);
     if(freeSpinsLeft<=0)ended=true;
   }
-  spinning=false;$('spinBtn').disabled=false;
+  // big-win celebration for this spin (spinning stays locked so nothing fires behind it)
+  if(finalWin>0)await bigWinPage(finalWin);
+  spinning=false;
 
   if(naturalTrigger){await beginFreeSpins(`🥃 SHOT GLASSES ALIGN!`,`Goonar grants you 15 Free Spins — multipliers never reset.`);return;}
   if(ended){
     const total=freeSpinTotalWin;
     inFreeSpins=false;freeSpinTotalMult=1;
+    if(winTier(total))await bigWinPage(total);   // grand-total celebration
+    credits+=total;creditsEl.textContent=kr(credits);   // pay the feature into the balance now
     await overlayEnd(total);
     fsBanner.style.display='none';showFsWinBar(false);
-    $('buyBtn').disabled=false;
+    $('buyBtn').disabled=false;$('spinBtn').disabled=false;
     setLog(`Free spins done! You bled Goonar for ${kr(total)}. 🍻`);
     return;
   }
-  $('buyBtn').disabled=inFreeSpins;
-  if(inFreeSpins){await sleep(650);spin();}
+  if(inFreeSpins){await sleep(650);spin();}   // auto-run remaining free spins (buttons stay locked)
+  else {$('spinBtn').disabled=false;$('buyBtn').disabled=false;}
 }
 // Shared setup for both bought and naturally-triggered free spins: shows a click-to-start intro.
 async function beginFreeSpins(title,sub){
@@ -755,9 +827,9 @@ async function beginFreeSpins(title,sub){
 function buildTriggerGrid(n){
   buildGrid();
   for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){if(grid[r][c].type==='scatter')grid[r][c]={type:'pay',id:'burger'};}
-  const pos=[];
-  while(pos.length<n){const r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);if(!pos.some(p=>p[0]===r&&p[1]===c))pos.push([r,c]);}
-  pos.forEach(([r,c])=>grid[r][c]={type:'scatter'});
+  // one scatter per reel: pick n distinct columns, random row in each
+  const cols=[...Array(COLS).keys()].sort(()=>Math.random()-0.5).slice(0,n);
+  cols.forEach(c=>{const r=Math.floor(Math.random()*ROWS);grid[r][c]={type:'scatter'};});
 }
 async function buyFreeSpins(){
   if(spinning||inFreeSpins||overlayActive)return;
@@ -804,6 +876,9 @@ window.addEventListener('keydown',e=>{
 });
 document.body.addEventListener('click',()=>{if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}},{once:true});
 if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=()=>{};
+// preload + decode all symbol art once so tumbles don't jank on first appearance
+['burger','fries','pizza','hotdog','redbull','isbjorn','smirnoff','fireball','minttu','scatter','football']
+  .forEach(n=>{const im=new Image();im.src='assets/'+n+'.png';if(im.decode)im.decode().catch(()=>{});});
 buildGrid();render();setBet(10);
 creditsEl.textContent=kr(credits);winDisplay.textContent=kr(0);setTumbleCounter(0,false);
 </script>
