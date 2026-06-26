@@ -751,7 +751,7 @@ async function tumble(activeBet){
   let first=true;
   while(true){
     if(first){first=false;} else {render();await sleep(520);}
-    if(hasMult()&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck you Goonar!');shouted=true;}
+    if(hasMult()&&!shouted){goonarSpeak('Fuck you Goonar!');shouted=true;}
     const{mult,ids,perSym}=calcWins();
     if(ids.length===0)break;
     const cascadeWin=mult*activeBet;
@@ -775,7 +775,7 @@ async function tumble(activeBet){
     clearWinners(ids);const f=collapse();render(f);await sleep(640); // let the staggered fall land
   }
   const mtotal=sumMult();
-  if(mtotal>0&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck you Goonar!');}
+  if(mtotal>0&&!shouted){goonarSpeak('Fuck you Goonar!');}
   return{rawWin,mtotal};
 }
 async function spin(){
