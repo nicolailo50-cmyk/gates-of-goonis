@@ -538,8 +538,8 @@ const MULT_WT_FREE=[10,11,11,11,11,9,7,5,2.5,1.2];      // free spins: bigger or
 // Symbol drop weights. Base game = very few multipliers; free spins = many.
 // Weights tuned via Monte Carlo so RTP ~96.5% with the fixed paytable above.
 // Base RTP ~96.5%; bought free-spins feature ~98% (cost 100x bet).
-const WEIGHTS_BASE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:2.25,multiplier:0.2};
-const WEIGHTS_FREE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.0,multiplier:2.05};
+const WEIGHTS_BASE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:2.3,multiplier:0.2};
+const WEIGHTS_FREE={burger:8,fries:8,pizza:7,hotdog:8,isbjorn:10,smirnoff:10,fireball:10,redbull:9,minttu:9,scatter:1.0,multiplier:2.55};
 const BUY_COST_MULT=100; // buy free spins = 100x base bet
 function buildPool(w){const p=[];for(const[k,v]of Object.entries(w))for(let i=0;i<Math.round(v*10);i++)p.push(k);return p;}
 const POOL_BASE=buildPool(WEIGHTS_BASE), POOL_FREE=buildPool(WEIGHTS_FREE);
@@ -790,11 +790,15 @@ async function spin(){
   const{rawWin,mtotal}=await tumble(bet);
   let finalWin=0;
   if(inFreeSpins){
-    // Gates rule: orbs only count on a WINNING spin. A win with no orbs leaves the total unchanged.
+    // Orbs only count on a winning spin AND the global multiplier is applied ONLY on spins
+    // that have a multidrop. A winning spin with no orb pays at base (x1); the global persists.
     if(rawWin>0){
-      if(mtotal>0)freeSpinTotalMult+=mtotal;
-      const applied=freeSpinTotalMult>0?freeSpinTotalMult:1;
-      finalWin=rawWin*applied;
+      if(mtotal>0){
+        freeSpinTotalMult+=mtotal;
+        finalWin=rawWin*freeSpinTotalMult;   // multidrop spin -> apply the global multiplier
+      } else {
+        finalWin=rawWin;                       // win, no orb this spin -> base pay
+      }
       fsMultEl.textContent='x'+(freeSpinTotalMult>0?freeSpinTotalMult:1);
     }
   } else {
