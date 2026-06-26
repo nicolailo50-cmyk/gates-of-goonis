@@ -878,10 +878,19 @@ function renderPaytable(){
       <div class="pt-vals">12+ <b>${kr(s.pay[5]*bet)}</b><br>10-11 <b>${kr(s.pay[4]*bet)}</b><br>8-9 <b>${kr(s.pay[3]*bet)}</b></div></div></div>`;
   }).join('');
 }
-function setBet(v){bet=Math.max(1,Math.min(1000,v));betAmt.textContent=kr(bet);betDisplay.textContent=kr(bet);const pb=document.getElementById('ptBet');if(pb)pb.textContent=kr(bet);const bc=document.getElementById('buyCost');if(bc)bc.textContent=kr(bet*BUY_COST_MULT);renderPaytable();}
+const BET_DENOMS=[2,4,6,8,10,12,14,16,18,20];
+function setBet(v){
+  // snap to the nearest allowed base-bet denomination
+  bet=BET_DENOMS.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a,BET_DENOMS[0]);
+  betAmt.textContent=kr(bet);betDisplay.textContent=kr(bet);
+  const pb=document.getElementById('ptBet');if(pb)pb.textContent=kr(bet);
+  const bc=document.getElementById('buyCost');if(bc)bc.textContent=kr(bet*BUY_COST_MULT);
+  renderPaytable();
+}
+function stepBet(dir){const i=BET_DENOMS.indexOf(bet);setBet(BET_DENOMS[Math.max(0,Math.min(BET_DENOMS.length-1,i+dir))]);}
 document.getElementById('ptToggle').addEventListener('click',()=>document.getElementById('paytable').classList.toggle('open'));
-$('betUp').addEventListener('click',()=>setBet(bet+5));
-$('betDown').addEventListener('click',()=>setBet(bet-5));
+$('betUp').addEventListener('click',()=>stepBet(1));
+$('betDown').addEventListener('click',()=>stepBet(-1));
 // Spacebar to spin (ignore when typing in an input)
 window.addEventListener('keydown',e=>{
   if(e.code==='Space'){
