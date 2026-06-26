@@ -522,7 +522,7 @@
     <div style="text-align:center;color:#cdb6ff;font-size:12px;margin-bottom:8px;">Payouts at current bet (<span id="ptBet">10</span>) · pays for 8+ matching symbols anywhere</div>
     <div class="pt-grid"></div>
   </div>
-  <footer>Gates of Goonis · RTP 96.5% · a friendly inside joke · no real money, no real gambling.</footer>
+  <footer>Gates of Goonis · RTP 96.5% · a friendly inside joke · no real money, no real gambling. · <span id="build">build —</span></footer>
 </div>
 
 <script>
@@ -996,6 +996,7 @@ function snare(t,dest){noise(t,0.18,1800,0.5,dest);blip(190,t,0.12,'triangle',0.
 const M_BPM=128, STEP16=60/M_BPM/4;            // 16th-note grid
 const PROG=[0,-4,-9,-2];                        // Am  F  C(low)  G  (epic minor)
 function mScheduler(){
+  try{
   while(mNextTime < aCtx.currentTime+0.25){
     const t=mNextTime, s=mStep%64, beat=Math.floor(s/4), bar=Math.floor(s/16)%4, root=PROG[bar];
     const third=root+3, fifth=root+7;           // minor chord tones
@@ -1012,6 +1013,7 @@ function mScheduler(){
     blip(ntof(arp[s%4]+12),t,STEP16*0.9,'square',0.05,musicGain);
     mStep++;mNextTime+=STEP16;
   }
+  }catch(e){ clearInterval(mTimer); }
 }
 function startMusic(){
   initAudio();
@@ -1026,22 +1028,35 @@ function stopMusic(){ if(!aCtx)return; musicGain.gain.cancelScheduledValues(aCtx
 $('musicToggle').addEventListener('change',e=>{ if(e.target.checked)startMusic(); else stopMusic(); });
 
 // ---- sound effects ----
-function sfxWin(level){ if(!aCtx)return; const t=aCtx.currentTime, base=520+Math.min(level,8)*70; blip(base,t,0.12,'triangle',0.3,sfxGain); blip(base*1.5,t+0.04,0.12,'triangle',0.22,sfxGain); }
-function sfxScatter(){ if(!aCtx)return; const t=aCtx.currentTime; [0,0.06,0.12].forEach((d,i)=>blip(900+i*450,t+d,0.18,'triangle',0.28,sfxGain)); noise(t,0.25,5000,0.12,sfxGain); }
-function sfxBig(){ if(!aCtx)return; const t=aCtx.currentTime; [0,3,7,12,15,19].forEach((n,i)=>blip(ntof(n)*2,t+i*0.08,0.4,'square',0.16,sfxGain)); }
-function sfxBuy(){ if(!aCtx)return; const t=aCtx.currentTime; blip(300,t,0.25,'sawtooth',0.25,sfxGain,900); }
+function sfxWin(level){ try{ if(!aCtx)return; const t=aCtx.currentTime, base=520+Math.min(level,8)*70; blip(base,t,0.12,'triangle',0.3,sfxGain); blip(base*1.5,t+0.04,0.12,'triangle',0.22,sfxGain); }catch(e){} }
+function sfxScatter(){ try{ if(!aCtx)return; const t=aCtx.currentTime; [0,0.06,0.12].forEach((d,i)=>blip(900+i*450,t+d,0.18,'triangle',0.28,sfxGain)); noise(t,0.25,5000,0.12,sfxGain); }catch(e){} }
+function sfxBig(){ try{ if(!aCtx)return; const t=aCtx.currentTime; [0,3,7,12,15,19].forEach((n,i)=>blip(ntof(n)*2,t+i*0.08,0.4,'square',0.16,sfxGain)); }catch(e){} }
+function sfxBuy(){ try{ if(!aCtx)return; const t=aCtx.currentTime; blip(300,t,0.25,'sawtooth',0.25,sfxGain,900); }catch(e){} }
 
-// start audio on first user gesture (autoplay policy); voice unlock too
+// start audio on first user gesture (autoplay policy); voice unlock too — fully guarded
 document.body.addEventListener('click',()=>{
-  initAudio(); if(aCtx&&aCtx.state==='suspended')aCtx.resume();
-  if($('musicToggle').checked)startMusic();
+  try{ initAudio(); if(aCtx&&aCtx.state==='suspended')aCtx.resume(); if($('musicToggle').checked)startMusic(); }catch(e){}
   if('speechSynthesis'in window){try{const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}catch(e){}}
 },{once:true});
+
+// SAFETY NET: if anything throws mid-spin, recover instead of permanently locking the game,
+// and show the error so it can be diagnosed (rather than the game silently freezing).
+function gooRecover(msg){
+  try{spinning=false;overlayActive=false;
+    const sb=document.getElementById('spinBtn'),bb=document.getElementById('buyBtn');
+    if(sb)sb.disabled=false; if(bb)bb.disabled=false;
+    const o=document.getElementById('overlay');if(o){o.classList.remove('show');o.innerHTML='';}
+  }catch(e){}
+  try{setLog('⚠ '+msg);}catch(e){}
+}
+window.addEventListener('error',e=>gooRecover((e&&e.message)||'error'));
+window.addEventListener('unhandledrejection',e=>gooRecover((e&&e.reason&&(e.reason.message||e.reason))||'async error'));
 // preload + decode all symbol art once so tumbles don't jank on first appearance
 ['burger','fries','pizza','hotdog','redbull','isbjorn','smirnoff','fireball','minttu','scatter','football']
   .forEach(n=>{const im=new Image();im.src='assets/'+n+'.png';if(im.decode)im.decode().catch(()=>{});});
 buildGrid();render();setBet(10);
 paintCredits();winDisplay.textContent=kr(0);setTumbleCounter(0,false);
+{const b=document.getElementById('build');if(b)b.textContent='build v8 ('+new Date().toISOString().slice(0,16).replace('T',' ')+' load)';}
 </script>
 </body>
 </html>
