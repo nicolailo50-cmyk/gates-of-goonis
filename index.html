@@ -143,7 +143,9 @@
   .cell{will-change:transform;}
   .cell.falling{animation:drop .5s cubic-bezier(.25,.9,.3,1) both;}
   @keyframes drop{0%{transform:translateY(-120%);opacity:0}60%{opacity:1}80%{transform:translateY(4%)}100%{transform:translateY(0);opacity:1}}
-  .cell.scatter-cell{box-shadow:inset 0 0 0 2px #8fffc0,0 0 20px #2ec27e;animation:scpulse 1.2s ease-in-out infinite;}
+  /* glow pulse lives on ::after so it never overrides the cell's drop/fall animation */
+  .cell.scatter-cell::after{content:'';position:absolute;inset:0;border-radius:14px;pointer-events:none;
+    box-shadow:inset 0 0 0 2px #8fffc0,0 0 20px #2ec27e;animation:scpulse 1.2s ease-in-out infinite;}
   @keyframes scpulse{0%,100%{box-shadow:inset 0 0 0 2px #8fffc0,0 0 12px #2ec27e}50%{box-shadow:inset 0 0 0 2px #c8ffe0,0 0 26px #43e39a}}
   .cell.mult-cell svg{animation:orbland .5s ease;}
   @keyframes orbland{0%{transform:scale(0) rotate(-120deg)}70%{transform:scale(1.22)}100%{transform:scale(1)}}
@@ -499,6 +501,7 @@
     <button class="spin" id="spinBtn">SPIN</button>
     <button class="buy" id="buyBtn">🥃 BUY FREE SPINS<br><span id="buyCost">1 000 kr</span></button>
     <label class="toggle"><input type="checkbox" id="soundToggle" checked> 🔊 Goonar voice</label>
+    <label class="toggle"><input type="checkbox" id="musicToggle" checked> 🎵 Music</label>
   </div>
 
   <div id="log">Good luck — Goonar's watching. 👀 · <span style="color:#cdb6ff">[Space] to spin</span></div>
@@ -613,7 +616,7 @@ function winTier(amount){
 }
 async function bigWinPage(amount){
   const t=winTier(amount);if(!t)return;
-  goonarShout();
+  goonarReact();
   const bw=document.getElementById('bigwin');
   bw.className='show '+t.cls;
   bw.innerHTML=`<div class="bw-rays"></div><div class="bw-card"><div class="bw-title">${t.name}</div><div class="bw-amt">0 kr</div></div>`;
@@ -697,11 +700,13 @@ async function revealLeftToRight(){
       div.innerHTML=cellInner(cell);
     }
     if(colHasScatter)scattersSoFar++;
+    // Goonar announces the bonus the moment the 4th scatter lands
+    if(colHasScatter&&scattersSoFar===4)goonarSpeak('Free spins!');
     // anticipation: once 3 scatters are showing and reels remain, slow the rest right down
     const remaining=COLS-1-c;
     if(scattersSoFar>=3 && remaining>0){
       boardEl.classList.add('anticipation');
-      if(scattersSoFar>=3&&colHasScatter)goonarShout();
+      if(colHasScatter)goonarReact();   // tension glow, no voice
       await sleep(950);
     } else {
       await sleep(230);   // smoother, a little slower than before
@@ -713,16 +718,23 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function setLog(m){logEl.textContent=m;}
 
 let shoutGlowTimer=null;
-function goonarShout(){
-  speechEl.classList.remove('show');void speechEl.offsetWidth;speechEl.classList.add('show');
+// visual only: glow + shake (used whenever Goonar reacts, including free-spin multi drops)
+function goonarReact(){
   goonar.classList.remove('angry');void goonar.offsetWidth;goonar.classList.add('angry');
   goonar.classList.add('shout-glow');
   clearTimeout(shoutGlowTimer);shoutGlowTimer=setTimeout(()=>goonar.classList.remove('shout-glow'),1400);
+}
+// visual + voice line with matching speech bubble; natural rate/pitch for a more human voice
+function goonarSpeak(text){
+  speechEl.textContent=text;
+  speechEl.classList.remove('show');void speechEl.offsetWidth;speechEl.classList.add('show');
+  goonarReact();
   if(soundToggle.checked&&'speechSynthesis'in window){
-    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance('Fuck your Runar!');
-      u.rate=.95;u.pitch=.55;u.volume=1;const vs=speechSynthesis.getVoices();
-      const deep=vs.find(v=>/daniel|alex|fred|aaron|male/i.test(v.name))||vs.find(v=>/en/i.test(v.lang));
-      if(deep)u.voice=deep;speechSynthesis.speak(u);}catch(e){}
+    try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);
+      u.rate=1.0;u.pitch=1.0;u.volume=1;const vs=speechSynthesis.getVoices();
+      const pref=vs.find(v=>/Daniel|Samantha|Aaron|Arthur|Google US English|Google UK English Male/i.test(v.name))
+                ||vs.find(v=>/en[-_]?(US|GB)/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));
+      if(pref)u.voice=pref;speechSynthesis.speak(u);}catch(e){}
   }
 }
 // Runs the tumble chain. Returns RAW win (before multipliers) and total orb value
@@ -732,7 +744,7 @@ async function tumble(activeBet){
   let first=true;
   while(true){
     if(first){first=false;} else {render();await sleep(520);}
-    if(hasMult()&&!shouted){goonarShout();shouted=true;}
+    if(hasMult()&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck your Runar!');shouted=true;}
     const{mult,ids,perSym}=calcWins();
     if(ids.length===0)break;
     const cascadeWin=mult*activeBet;
@@ -756,7 +768,7 @@ async function tumble(activeBet){
     clearWinners(ids);const f=collapse();render(f);await sleep(640); // let the staggered fall land
   }
   const mtotal=sumMult();
-  if(mtotal>0&&!shouted)goonarShout();
+  if(mtotal>0&&!shouted){if(inFreeSpins)goonarReact();else goonarSpeak('Fuck your Runar!');}
   return{rawWin,mtotal};
 }
 async function spin(){
@@ -786,7 +798,7 @@ async function spin(){
 
   const sc=countScatters();
   const naturalTrigger = (sc>=4 && !inFreeSpins);
-  if(sc>=3&&inFreeSpins){freeSpinsLeft+=5;fsLeftEl.textContent=freeSpinsLeft;setLog(`🥃 Retrigger! +5 Free Spins.`);goonarShout();await sleep(800);}
+  if(sc>=3&&inFreeSpins){freeSpinsLeft+=5;fsLeftEl.textContent=freeSpinsLeft;setLog(`🥃 Retrigger! +5 Free Spins.`);goonarReact();await sleep(800);}
 
   winDisplay.textContent=kr(finalWin);
   // BALANCE: only update live in the base game. During free spins it's frozen and paid out at the end.
@@ -881,6 +893,69 @@ window.addEventListener('keydown',e=>{
 });
 document.body.addEventListener('click',()=>{if('speechSynthesis'in window){const u=new SpeechSynthesisUtterance(' ');u.volume=0;speechSynthesis.speak(u);}},{once:true});
 if('speechSynthesis'in window)speechSynthesis.onvoiceschanged=()=>{};
+
+// ---------------- Procedural backing music (Web Audio, no files / no copyright) ----------------
+let mCtx=null,mMaster=null,mTimer=null,mStep=0;
+const M_BPM=104, M_STEP=60/M_BPM/2;   // eighth-note steps
+// chord roots over a 4-bar loop (A minor vibe): Am F C G  (semitone offsets from A2=110Hz)
+const M_PROG=[0,-4,3,-2];
+const A2=110;
+function ntof(semi){return A2*Math.pow(2,semi/12);}
+function mTone(freq,t,dur,type,gain,glideTo){
+  const o=mCtx.createOscillator(),g=mCtx.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,t);
+  if(glideTo)o.frequency.exponentialRampToValueAtTime(glideTo,t+dur);
+  g.gain.setValueAtTime(0,t);
+  g.gain.linearRampToValueAtTime(gain,t+0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+  o.connect(g);g.connect(mMaster);o.start(t);o.stop(t+dur+0.05);
+}
+function mKick(t){
+  const o=mCtx.createOscillator(),g=mCtx.createGain();
+  o.frequency.setValueAtTime(140,t);o.frequency.exponentialRampToValueAtTime(45,t+0.12);
+  g.gain.setValueAtTime(0.5,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+  o.connect(g);g.connect(mMaster);o.start(t);o.stop(t+0.2);
+}
+function mHat(t){
+  const b=mCtx.createBuffer(1,1100,mCtx.sampleRate),d=b.getChannelData(0);
+  for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;
+  const s=mCtx.createBufferSource();s.buffer=b;
+  const hp=mCtx.createBiquadFilter();hp.type='highpass';hp.frequency.value=7000;
+  const g=mCtx.createGain();g.gain.setValueAtTime(0.12,t);g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);
+  s.connect(hp);hp.connect(g);g.connect(mMaster);s.start(t);s.stop(t+0.06);
+}
+function mScheduler(){
+  const ahead=0.2;
+  while(mNextTime < mCtx.currentTime+ahead){
+    const t=mNextTime, step=mStep%32, bar=Math.floor(step/8)%4, root=M_PROG[bar];
+    // bass on every step (root, octave down)
+    mTone(ntof(root-12),t,M_STEP*0.9,'triangle',0.18);
+    // arpeggio over chord tones (root,3rd≈+3 (minor) / +4? keep minor-ish),5th)
+    const chord=[root,root+ (bar===1||bar===2?4:3), root+7, root+12];
+    mTone(ntof(chord[step%chord.length]+12),t,M_STEP*0.8,'sawtooth',0.05);
+    // drums
+    if(step%4===0)mKick(t);
+    if(step%2===1)mHat(t);
+    mStep++;mNextTime+=M_STEP;
+  }
+}
+let mNextTime=0;
+function startMusic(){
+  if(mCtx)return;
+  mCtx=new (window.AudioContext||window.webkitAudioContext)();
+  mMaster=mCtx.createGain();mMaster.gain.value=0;mMaster.connect(mCtx.destination);
+  mMaster.gain.linearRampToValueAtTime(0.16,mCtx.currentTime+1.5); // gentle fade-in, low volume
+  mNextTime=mCtx.currentTime+0.1;mStep=0;
+  mTimer=setInterval(mScheduler,25);
+}
+function setMusic(on){
+  if(!mCtx)return;
+  mMaster.gain.cancelScheduledValues(mCtx.currentTime);
+  mMaster.gain.linearRampToValueAtTime(on?0.16:0,mCtx.currentTime+0.4);
+}
+$('musicToggle').addEventListener('change',e=>{ if(e.target.checked){if(!mCtx)startMusic();else setMusic(true);} else setMusic(false); });
+// start music on first user gesture if enabled (browser autoplay policy)
+document.body.addEventListener('click',()=>{ if($('musicToggle').checked)startMusic(); },{once:true});
 // preload + decode all symbol art once so tumbles don't jank on first appearance
 ['burger','fries','pizza','hotdog','redbull','isbjorn','smirnoff','fireball','minttu','scatter','football']
   .forEach(n=>{const im=new Image();im.src='assets/'+n+'.png';if(im.decode)im.decode().catch(()=>{});});
