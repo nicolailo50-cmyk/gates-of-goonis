@@ -560,7 +560,7 @@ let autoSpins=0,turbo=false,speedMul=1;
 const $=id=>document.getElementById(id);
 // load saved balance (persists across refreshes)
 {const saved=parseFloat(localStorage.getItem('goonis_credits'));if(!isNaN(saved)&&saved>=0)credits=saved;}
-function paintCredits(){paintCredits();try{localStorage.setItem('goonis_credits',credits);}catch(e){}}
+function paintCredits(){creditsEl.textContent=kr(credits);try{localStorage.setItem('goonis_credits',credits);}catch(e){}}
 const boardEl=$('board'),creditsEl=$('credits'),betDisplay=$('betDisplay'),betAmt=$('betAmt'),
   winDisplay=$('winDisplay'),logEl=$('log'),fsBanner=$('fsBanner'),fsLeftEl=$('fsLeft'),fsMultEl=$('fsMult'),
   goonar=$('goonar'),speechEl=$('speech'),soundToggle=$('soundToggle');
