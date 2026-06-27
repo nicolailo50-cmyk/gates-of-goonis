@@ -49,6 +49,8 @@
     -webkit-text-stroke:1px rgba(120,80,10,.4);
   }
   .titlebar .sub{color:#d6c4ff;font-style:italic;font-size:14px;margin-top:2px;}
+  .titlebar .sub2{color:#ffb3d9;font-weight:900;font-size:15px;letter-spacing:.5px;margin-top:3px;
+    text-shadow:0 0 8px rgba(255,120,190,.6);}
 
   .stage{display:grid;grid-template-columns:310px 1fr;gap:10px;align-items:center;}
   @media(max-width:920px){.stage{grid-template-columns:1fr;}.goonar{order:2;max-width:320px;margin:0 auto;}}
@@ -461,6 +463,7 @@
   <div class="titlebar">
     <h1>GATES OF GOONIS</h1>
     <div class="sub">Tumble for Goonar's glory · play credits only · all in good fun 🍻</div>
+    <div class="sub2">Signe is a cutie 💛</div>
   </div>
 
   <div class="fsBanner" id="fsBanner">🥃 FREE SPINS — <span id="fsLeft">0</span> left · Total Multiplier <span id="fsMult">x1</span></div>
@@ -1056,7 +1059,7 @@ window.addEventListener('unhandledrejection',e=>gooRecover((e&&e.reason&&(e.reas
   .forEach(n=>{const im=new Image();im.src='assets/'+n+'.png';if(im.decode)im.decode().catch(()=>{});});
 buildGrid();render();setBet(10);
 paintCredits();winDisplay.textContent=kr(0);setTumbleCounter(0,false);
-{const b=document.getElementById('build');if(b)b.textContent='build v8 ('+new Date().toISOString().slice(0,16).replace('T',' ')+' load)';}
+{const b=document.getElementById('build');if(b)b.textContent='build v9 ('+new Date().toISOString().slice(0,16).replace('T',' ')+' load)';}
 </script>
 </body>
 </html>
